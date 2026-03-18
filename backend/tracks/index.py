@@ -34,7 +34,7 @@ def handler(event: dict, context) -> dict:
 
     method = event.get('httpMethod', 'GET')
     token = event.get('headers', {}).get('X-Session-Token', '')
-    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+    schema = os.environ.get('MAIN_DB_SCHEMA') or 't_p40522734_quantum_analytics_ed'
 
     conn = get_conn()
     cur = conn.cursor()
