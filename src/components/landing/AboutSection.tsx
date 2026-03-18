@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { Headphones, Music, Mic2, Award } from "lucide-react";
 
 const achievements = [
-  { icon: <Headphones className="w-6 h-6" />, label: "Лет в индустрии", value: "10+" },
+  { icon: <Headphones className="w-6 h-6" />, label: "Лет в индустрии", value: "8" },
   { icon: <Music className="w-6 h-6" />, label: "Выпущенных треков", value: "200+" },
   { icon: <Mic2 className="w-6 h-6" />, label: "Продвинутых артистов", value: "50+" },
   { icon: <Award className="w-6 h-6" />, label: "Успешных кейсов", value: "100+" },
@@ -69,7 +69,7 @@ const AboutSection = () => {
           <div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">Александр Балашов</h2>
             <p className="text-lg mb-6 text-zinc-300">
-              Генеральный директор и продюсер лейбла Калашников Саунд. Более 10 лет в музыкальной
+              Генеральный директор и продюсер лейбла Калашников Саунд. 8 лет в музыкальной
               индустрии — от создания звука до полноценного продвижения артистов на рынке.
             </p>
             <p className="text-lg mb-8 text-zinc-300">

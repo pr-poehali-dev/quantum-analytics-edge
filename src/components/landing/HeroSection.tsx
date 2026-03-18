@@ -24,7 +24,7 @@ const HeroSection = () => {
   const stats = [
     { icon: <Play className="w-6 h-6" />, label: "Продвинутых артистов", value: "50+" },
     { icon: <Disc3 className="w-6 h-6" />, label: "Выпущенных треков", value: "200+" },
-    { icon: <Music2 className="w-6 h-6" />, label: "Лет в музыкальной индустрии", value: "10+" },
+    { icon: <Music2 className="w-6 h-6" />, label: "Лет в музыкальной индустрии", value: "8" },
     { icon: <AudioWaveform className="w-6 h-6" />, label: "Успешных кейсов", value: "100+" },
   ];
 
