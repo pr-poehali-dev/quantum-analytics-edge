@@ -9,7 +9,7 @@ const artists = [
   { name: "DIMUSIK", url: "https://music.yandex.ru/artist/16745184" },
   { name: "Макс Чуев", url: "https://music.yandex.ru/artist/25536549" },
   { name: "Lill Kiska", url: "https://music.yandex.ru/artist/23291999" },
-  { name: "TBOU DRIG", url: "https://music.yandex.ru/artist/25067872" },
+  { name: "TBOU DRUG", url: "https://music.yandex.ru/artist/25067872" },
   { name: "StasFox", url: "https://music.yandex.ru/artist/24519124" },
   { name: "MAMATANK", url: "https://music.yandex.ru/artist/22126498" },
 ];
