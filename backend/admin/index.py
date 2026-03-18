@@ -106,11 +106,16 @@ def handler(event: dict, context) -> dict:
             },
             auth=HTTPBasicAuth(shop_id, secret_key),
             headers={'Idempotence-Key': str(uuid.uuid4())},
+            timeout=15,
         )
         data = resp.json()
-        if resp.status_code != 200:
-            return json_response(500, {'error': data.get('description', 'Ошибка ЮКасса')})
-        return json_response(200, {'payment_url': data['confirmation']['confirmation_url']})
+        print(f"[pay-package] status={resp.status_code} data={data}")
+        if resp.status_code not in (200, 201):
+            return json_response(500, {'error': data.get('description', f'Ошибка ЮКасса (код {resp.status_code})')})
+        payment_url = data.get('confirmation', {}).get('confirmation_url')
+        if not payment_url:
+            return json_response(500, {'error': 'ЮКасса не вернула ссылку на оплату'})
+        return json_response(200, {'payment_url': payment_url})
 
     # Вебхук от ЮКасса (без авторизации)
     if path.endswith('/webhook') and method == 'POST':

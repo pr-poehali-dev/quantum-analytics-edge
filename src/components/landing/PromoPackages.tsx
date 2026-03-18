@@ -53,18 +53,23 @@ export default function PromoPackages() {
     if (!form.name.trim() || !form.contact.trim()) { setError("Укажите имя и контакт"); return; }
     setError("");
     setLoading(true);
-    const res = await api.packages.pay({
-      package: selected,
-      name: form.name,
-      contact: form.contact,
-      track: form.track,
-      return_url: window.location.origin + "/?payment=success",
-    });
-    setLoading(false);
-    if (res.payment_url) {
-      window.location.href = res.payment_url;
-    } else {
-      setError(res.error || "Ошибка создания платежа");
+    try {
+      const res = await api.packages.pay({
+        package: selected,
+        name: form.name,
+        contact: form.contact,
+        track: form.track,
+        return_url: window.location.origin + "/?payment=success",
+      });
+      if (res.payment_url) {
+        window.location.href = res.payment_url;
+      } else {
+        setError(res.error || "Ошибка создания платежа");
+      }
+    } catch {
+      setError("Не удалось создать платёж. Попробуйте ещё раз.");
+    } finally {
+      setLoading(false);
     }
   };
 
