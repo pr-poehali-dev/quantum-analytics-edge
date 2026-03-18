@@ -54,13 +54,15 @@ const AboutSection = () => {
         >
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/0 rounded-3xl transform -rotate-6"></div>
-            <div className="w-full aspect-square bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-3xl relative z-10 flex items-center justify-center">
-              <div className="text-center p-8">
-                <div className="w-32 h-32 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                  <Music className="w-16 h-16 text-white" />
-                </div>
-                <p className="text-zinc-400 text-lg">Александр Балашов</p>
-                <p className="text-zinc-500 text-sm">Продюсер · Калашников Саунд</p>
+            <div className="w-full aspect-square rounded-3xl relative z-10 overflow-hidden">
+              <img
+                src="https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/32d4d682-6dd2-4faf-8c6c-e1f66581c207.jpg"
+                alt="Александр Балашов — продюсер Калашников Саунд"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-6 py-5">
+                <p className="text-white font-semibold text-lg">Александр Балашов</p>
+                <p className="text-zinc-400 text-sm">Продюсер · Калашников Саунд</p>
               </div>
             </div>
           </div>
