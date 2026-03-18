@@ -3,6 +3,7 @@ const URLS = {
   tracks: "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2",
   chat: "https://functions.poehali.dev/6c31944e-44d4-4a20-b201-4fc6021e25ba",
   admin: "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f",
+  payPackage: "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f",
 };
 
 function getToken() {
@@ -70,5 +71,15 @@ export const api = {
       fetch(`${URLS.admin}/statistics`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
     delete: (id: number) =>
       fetch(`${URLS.admin}/statistics/delete`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ id }) }).then((r) => r.json()),
+  },
+  visits: {
+    track: (page: string, sessionId: string) =>
+      fetch(`${URLS.payPackage}/visit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ page, session_id: sessionId }) }).then((r) => r.json()).catch(() => null),
+    stats: () =>
+      fetch(`${URLS.payPackage}/visits`, { headers: authHeaders() }).then((r) => r.json()),
+  },
+  packages: {
+    pay: (data: { package: string; name: string; contact: string; track?: string; return_url?: string }) =>
+      fetch(`${URLS.payPackage}/pay`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then((r) => r.json()),
   },
 };

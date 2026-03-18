@@ -3,6 +3,7 @@ import {
   Header,
   HeroSection,
   LicenseSection,
+  PromoPackages,
   AboutSection,
   ArtistsSection,
   DemoSection,
@@ -19,6 +20,7 @@ const Index = () => {
         <main>
           <HeroSection />
           <LicenseSection />
+          <PromoPackages />
           <AboutSection />
           <ArtistsSection />
           <DemoSection />

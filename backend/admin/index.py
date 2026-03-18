@@ -1,5 +1,5 @@
 """
-Административные функции и оплата: артисты, контракты, треки, платежи ЮКасса, статистика прослушиваний.
+Административные функции: артисты, контракты, треки, платежи ЮКасса, статистика прослушиваний, посещаемость сайта, пакеты продвижения.
 """
 import json
 import os
@@ -7,6 +7,13 @@ import uuid
 import psycopg2
 import requests
 from requests.auth import HTTPBasicAuth
+
+PACKAGES = {
+    'minimal':      {'name': 'Минимальный пакет',     'amount': '5000.00',  'description': 'Продвижение: минимум 10 000 прослушиваний'},
+    'medium':       {'name': 'Средний пакет',          'amount': '10000.00', 'description': 'Продвижение: минимум 30 000 прослушиваний'},
+    'confident':    {'name': 'Уверенный пакет',        'amount': '15000.00', 'description': 'Продвижение: минимум 50 000 прослушиваний'},
+    'professional': {'name': 'Профессиональный пакет', 'amount': '20000.00', 'description': 'Продвижение: от 100 000 прослушиваний'},
+}
 
 CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
@@ -39,6 +46,71 @@ def handler(event: dict, context) -> dict:
 
     conn = get_conn()
     cur = conn.cursor()
+
+    # Трекинг посещения сайта (публичный, без авторизации)
+    if path.endswith('/visit') and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        page = body.get('page', '/')[:255]
+        session_id = body.get('session_id', '')[:64]
+        user_agent = event.get('headers', {}).get('User-Agent', '')[:500]
+        try:
+            cur.execute(f"INSERT INTO {schema}.site_visits (page, session_id, user_agent) VALUES (%s, %s, %s)", (page, session_id, user_agent))
+            conn.commit()
+        except Exception:
+            pass
+        return json_response(200, {'ok': True})
+
+    # Статистика посещаемости (только admin)
+    if path.endswith('/visits') and method == 'GET':
+        visit_user = get_user(cur, token, schema)
+        if not visit_user or visit_user[1] != 'admin':
+            return json_response(403, {'error': 'Доступ запрещён'})
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '1 hour'")
+        online = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at::date = CURRENT_DATE")
+        today = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '7 days'")
+        week = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '30 days'")
+        month = cur.fetchone()[0]
+        cur.execute(f"SELECT page, COUNT(*) as cnt FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '7 days' GROUP BY page ORDER BY cnt DESC LIMIT 10")
+        top_pages = [{'page': r[0], 'visits': r[1]} for r in cur.fetchall()]
+        cur.execute(f"SELECT DATE(visited_at) as day, COUNT(*) as cnt FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '14 days' GROUP BY day ORDER BY day ASC")
+        daily = [{'date': str(r[0]), 'visits': r[1]} for r in cur.fetchall()]
+        return json_response(200, {'online': online, 'today': today, 'week': week, 'month': month, 'top_pages': top_pages, 'daily': daily})
+
+    # Оплата пакета продвижения (публичный)
+    if path.endswith('/pay-package') and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        package_id = body.get('package')
+        customer_name = body.get('name', '').strip()
+        customer_contact = body.get('contact', '').strip()
+        track_name = body.get('track', '').strip()
+        return_url = body.get('return_url', 'https://kalashnikov-sound.ru/')
+        if package_id not in PACKAGES:
+            return json_response(400, {'error': 'Неверный пакет'})
+        if not customer_name or not customer_contact:
+            return json_response(400, {'error': 'Укажите имя и контакт'})
+        pkg = PACKAGES[package_id]
+        shop_id = os.environ['YOOKASSA_SHOP_ID']
+        secret_key = os.environ['YOOKASSA_SECRET_KEY']
+        desc = f"{pkg['description']}. Артист: {customer_name}" + (f", трек: {track_name}" if track_name else "")
+        resp = requests.post(
+            'https://api.yookassa.ru/v3/payments',
+            json={
+                'amount': {'value': pkg['amount'], 'currency': 'RUB'},
+                'confirmation': {'type': 'redirect', 'return_url': return_url},
+                'capture': True,
+                'description': desc,
+                'metadata': {'package': package_id, 'customer_name': customer_name, 'customer_contact': customer_contact},
+            },
+            auth=HTTPBasicAuth(shop_id, secret_key),
+            headers={'Idempotence-Key': str(uuid.uuid4())},
+        )
+        data = resp.json()
+        if resp.status_code != 200:
+            return json_response(500, {'error': data.get('description', 'Ошибка ЮКасса')})
+        return json_response(200, {'payment_url': data['confirmation']['confirmation_url']})
 
     # Вебхук от ЮКасса (без авторизации)
     if path.endswith('/webhook') and method == 'POST':
