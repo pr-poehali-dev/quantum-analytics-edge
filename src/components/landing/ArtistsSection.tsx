@@ -8,7 +8,7 @@ const artists = [
   { name: "808 FAY", url: "https://music.yandex.ru/artist/25131782", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/4866b3a1-ab4b-4b78-961e-852b475a16a0.jpeg" },
   { name: "DIMUSIK", url: "https://music.yandex.ru/artist/16745184" },
   { name: "Макс Чуев", url: "https://music.yandex.ru/artist/25536549" },
-  { name: "Lill Kiska", url: "https://music.yandex.ru/artist/23291999" },
+  { name: "Lill Kiska", url: "https://music.yandex.ru/artist/23291999", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/d7f84708-bd5b-4310-8b00-9ee8452deca9.jpg" },
   { name: "TBOU DRUG", url: "https://music.yandex.ru/artist/25067872" },
   { name: "StasFox", url: "https://music.yandex.ru/artist/24519124", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/43dcb379-258a-46fb-a18a-570a29543ec4.jpg" },
   { name: "MAMATANK", url: "https://music.yandex.ru/artist/22126498" },
