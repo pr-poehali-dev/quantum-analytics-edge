@@ -7,10 +7,29 @@
       "expectedStatus": 200
     },
     {
-      "name": "Unknown path returns 404",
+      "name": "Login empty fields",
+      "method": "POST",
+      "path": "/?action=login",
+      "body": {},
+      "expectedStatus": 400,
+      "expectedBody": {"error": "Заполните все поля"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Login wrong password",
+      "method": "POST",
+      "path": "/?action=login",
+      "body": {"email": "noone@test.com", "password": "wrongpass"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "Неверный email или пароль"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Me without token",
       "method": "GET",
-      "path": "/",
-      "expectedStatus": 404,
+      "path": "/?action=me",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "Не авторизован"},
       "bodyMatcher": "partial"
     }
   ]

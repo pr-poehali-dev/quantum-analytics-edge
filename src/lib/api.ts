@@ -19,13 +19,13 @@ function authHeaders() {
 export const api = {
   auth: {
     register: (data: { email: string; password: string; artist_name: string }) =>
-      fetch(`${URLS.auth}/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then((r) => r.json()),
+      fetch(`${URLS.auth}?action=register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then((r) => r.json()),
     login: (data: { email: string; password: string }) =>
-      fetch(`${URLS.auth}/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then((r) => r.json()),
+      fetch(`${URLS.auth}?action=login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then((r) => r.json()),
     me: () =>
-      fetch(`${URLS.auth}/me`, { headers: authHeaders() }).then((r) => r.json()),
+      fetch(`${URLS.auth}?action=me`, { headers: authHeaders() }).then((r) => r.json()),
     logout: () =>
-      fetch(`${URLS.auth}/logout`, { method: "POST", headers: authHeaders() }).then((r) => r.json()),
+      fetch(`${URLS.auth}?action=logout`, { method: "POST", headers: authHeaders() }).then((r) => r.json()),
   },
   tracks: {
     list: (userId?: number) =>
