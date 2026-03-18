@@ -66,8 +66,9 @@ export default function PromoPackages() {
       } else {
         setError(res.error || "Ошибка создания платежа");
       }
-    } catch {
-      setError("Не удалось создать платёж. Попробуйте ещё раз.");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Ошибка: ${msg}`);
     } finally {
       setLoading(false);
     }
