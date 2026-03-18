@@ -44,42 +44,7 @@ def handler(event: dict, context) -> dict:
     path = event.get('path', '/')
     schema = os.environ.get('MAIN_DB_SCHEMA') or 't_p40522734_quantum_analytics_ed'
 
-    conn = get_conn()
-    cur = conn.cursor()
-
-    # Трекинг посещения сайта (публичный, без авторизации)
-    if path.endswith('/visit') and method == 'POST':
-        body = json.loads(event.get('body') or '{}')
-        page = body.get('page', '/')[:255]
-        session_id = body.get('session_id', '')[:64]
-        user_agent = event.get('headers', {}).get('User-Agent', '')[:500]
-        try:
-            cur.execute(f"INSERT INTO {schema}.site_visits (page, session_id, user_agent) VALUES (%s, %s, %s)", (page, session_id, user_agent))
-            conn.commit()
-        except Exception:
-            pass
-        return json_response(200, {'ok': True})
-
-    # Статистика посещаемости (только admin)
-    if path.endswith('/visits') and method == 'GET':
-        visit_user = get_user(cur, token, schema)
-        if not visit_user or visit_user[1] != 'admin':
-            return json_response(403, {'error': 'Доступ запрещён'})
-        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '1 hour'")
-        online = cur.fetchone()[0]
-        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at::date = CURRENT_DATE")
-        today = cur.fetchone()[0]
-        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '7 days'")
-        week = cur.fetchone()[0]
-        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '30 days'")
-        month = cur.fetchone()[0]
-        cur.execute(f"SELECT page, COUNT(*) as cnt FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '7 days' GROUP BY page ORDER BY cnt DESC LIMIT 10")
-        top_pages = [{'page': r[0], 'visits': r[1]} for r in cur.fetchall()]
-        cur.execute(f"SELECT DATE(visited_at) as day, COUNT(*) as cnt FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '14 days' GROUP BY day ORDER BY day ASC")
-        daily = [{'date': str(r[0]), 'visits': r[1]} for r in cur.fetchall()]
-        return json_response(200, {'online': online, 'today': today, 'week': week, 'month': month, 'top_pages': top_pages, 'daily': daily})
-
-    # Оплата пакета продвижения (публичный)
+    # Оплата пакета продвижения (публичный, без БД)
     if path.endswith('/pay-package') and method == 'POST':
         body = json.loads(event.get('body') or '{}')
         package_id = body.get('package')
@@ -116,6 +81,41 @@ def handler(event: dict, context) -> dict:
         if not payment_url:
             return json_response(500, {'error': 'ЮКасса не вернула ссылку на оплату'})
         return json_response(200, {'payment_url': payment_url})
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # Трекинг посещения сайта (публичный, без авторизации)
+    if path.endswith('/visit') and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        page = body.get('page', '/')[:255]
+        session_id = body.get('session_id', '')[:64]
+        user_agent = event.get('headers', {}).get('User-Agent', '')[:500]
+        try:
+            cur.execute(f"INSERT INTO {schema}.site_visits (page, session_id, user_agent) VALUES (%s, %s, %s)", (page, session_id, user_agent))
+            conn.commit()
+        except Exception:
+            pass
+        return json_response(200, {'ok': True})
+
+    # Статистика посещаемости (только admin)
+    if path.endswith('/visits') and method == 'GET':
+        visit_user = get_user(cur, token, schema)
+        if not visit_user or visit_user[1] != 'admin':
+            return json_response(403, {'error': 'Доступ запрещён'})
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '1 hour'")
+        online = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at::date = CURRENT_DATE")
+        today = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '7 days'")
+        week = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '30 days'")
+        month = cur.fetchone()[0]
+        cur.execute(f"SELECT page, COUNT(*) as cnt FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '7 days' GROUP BY page ORDER BY cnt DESC LIMIT 10")
+        top_pages = [{'page': r[0], 'visits': r[1]} for r in cur.fetchall()]
+        cur.execute(f"SELECT DATE(visited_at) as day, COUNT(*) as cnt FROM {schema}.site_visits WHERE visited_at > NOW() - INTERVAL '14 days' GROUP BY day ORDER BY day ASC")
+        daily = [{'date': str(r[0]), 'visits': r[1]} for r in cur.fetchall()]
+        return json_response(200, {'online': online, 'today': today, 'week': week, 'month': month, 'top_pages': top_pages, 'daily': daily})
 
     # Вебхук от ЮКасса (без авторизации)
     if path.endswith('/webhook') and method == 'POST':
