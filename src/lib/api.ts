@@ -80,7 +80,7 @@ export const api = {
   },
   packages: {
     pay: async (data: { package: string; name: string; contact: string; track?: string; return_url?: string }) => {
-      const r = await fetch(`${URLS.admin}/pay-package`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const r = await fetch(`${URLS.admin}?action=paypkg`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const text = await r.text();
       console.log("[pay-package] status:", r.status, "body:", text);
       try { return JSON.parse(text); } catch { return { error: `Сервер вернул: ${text.slice(0, 200)}` }; }

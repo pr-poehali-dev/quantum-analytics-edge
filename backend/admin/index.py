@@ -41,11 +41,13 @@ def handler(event: dict, context) -> dict:
 
     method = event.get('httpMethod', 'GET')
     token = event.get('headers', {}).get('X-Session-Token', '')
+    params = event.get('queryStringParameters') or {}
+    action = params.get('action', '')
     path = event.get('path', '/')
     schema = os.environ.get('MAIN_DB_SCHEMA') or 't_p40522734_quantum_analytics_ed'
 
     # Оплата пакета продвижения (публичный, без БД)
-    if path.endswith('/pay-package') and method == 'POST':
+    if (action == 'paypkg' or path.endswith('/pay-package') or path.endswith('/paypkg')) and method == 'POST':
         body = json.loads(event.get('body') or '{}')
         package_id = body.get('package')
         customer_name = body.get('name', '').strip()
