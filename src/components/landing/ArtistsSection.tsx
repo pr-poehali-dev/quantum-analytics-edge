@@ -10,7 +10,7 @@ const artists = [
   { name: "Макс Чуев", url: "https://music.yandex.ru/artist/25536549" },
   { name: "Lill Kiska", url: "https://music.yandex.ru/artist/23291999" },
   { name: "TBOU DRUG", url: "https://music.yandex.ru/artist/25067872" },
-  { name: "StasFox", url: "https://music.yandex.ru/artist/24519124" },
+  { name: "StasFox", url: "https://music.yandex.ru/artist/24519124", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/43dcb379-258a-46fb-a18a-570a29543ec4.jpg" },
   { name: "MAMATANK", url: "https://music.yandex.ru/artist/22126498" },
 ];
 
