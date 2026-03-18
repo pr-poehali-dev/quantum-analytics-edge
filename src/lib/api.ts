@@ -1,113 +1,86 @@
-const URLS = {
-  auth: "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c",
-  tracks: "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2",
-  chat: "https://functions.poehali.dev/6c31944e-44d4-4a20-b201-4fc6021e25ba",
-  admin: "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f",
-  payPackage: "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f",
-};
+const BASE = "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f";
+const CHAT = "https://functions.poehali.dev/6c31944e-44d4-4a20-b201-4fc6021e25ba";
+const TRACKS = "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2";
+const AUTH = "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c";
 
-function getToken() {
-  return localStorage.getItem("ks_token") || "";
+function token() { return localStorage.getItem("ks_token") || ""; }
+function headers() { return { "Content-Type": "application/json", "X-Session-Token": token() }; }
+function url(action: string, extra = "") { return `${BASE}?action=${action}${extra}`; }
+
+async function post(action: string, body: unknown, authed = true) {
+  const r = await fetch(url(action), { method: "POST", headers: authed ? headers() : { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return r.json();
 }
-
-function authHeaders() {
-  return {
-    "Content-Type": "application/json",
-    "X-Session-Token": getToken(),
-  };
+async function get(action: string, query = "") {
+  const r = await fetch(url(action, query), { headers: headers() });
+  return r.json();
+}
+async function put(action: string, body: unknown) {
+  const r = await fetch(url(action), { method: "PUT", headers: headers(), body: JSON.stringify(body) });
+  return r.json();
 }
 
 export const api = {
   auth: {
-    register: (data: { email: string; password: string; artist_name: string }) =>
-      fetch(`${URLS.auth}?action=register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then((r) => r.json()),
-    login: (data: { email: string; password: string }) =>
-      fetch(`${URLS.auth}?action=login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then((r) => r.json()),
-    me: () =>
-      fetch(`${URLS.auth}?action=me`, { headers: authHeaders() }).then((r) => r.json()),
-    logout: () =>
-      fetch(`${URLS.auth}?action=logout`, { method: "POST", headers: authHeaders() }).then((r) => r.json()),
+    register: (data: object) => fetch(`${AUTH}?action=register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+    login: (data: object) => fetch(`${AUTH}?action=login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+    me: () => fetch(`${AUTH}?action=me`, { headers: headers() }).then(r => r.json()),
+    logout: () => fetch(`${AUTH}?action=logout`, { method: "POST", headers: headers() }).then(r => r.json()),
   },
   tracks: {
-    list: (userId?: number) =>
-      fetch(`${URLS.tracks}${userId ? `?user_id=${userId}` : ""}`, { headers: authHeaders() }).then((r) => r.json()),
-    upload: (data: { title: string; file_data: string; file_name: string }) =>
-      fetch(URLS.tracks, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
+    list: (userId?: number) => fetch(`${TRACKS}${userId ? `?user_id=${userId}` : ""}`, { headers: headers() }).then(r => r.json()),
+    upload: (data: object) => fetch(TRACKS, { method: "POST", headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
   },
   chat: {
-    messages: (userId?: number) =>
-      fetch(`${URLS.chat}${userId ? `?user_id=${userId}` : ""}`, { headers: authHeaders() }).then((r) => r.json()),
-    send: (text: string, userId?: number) =>
-      fetch(URLS.chat, { method: "POST", headers: authHeaders(), body: JSON.stringify({ text, ...(userId ? { user_id: userId } : {}) }) }).then((r) => r.json()),
+    messages: (userId?: number) => get("messages", userId ? `&user_id=${userId}` : ""),
+    send: (text: string, userId?: number) => post("send-message", { text, ...(userId ? { user_id: userId } : {}) }),
   },
   admin: {
-    artists: () =>
-      fetch(`${URLS.admin}/artists`, { headers: authHeaders() }).then((r) => r.json()),
-    contracts: (userId?: number) =>
-      fetch(`${URLS.admin}/contracts${userId ? `?user_id=${userId}` : ""}`, { headers: authHeaders() }).then((r) => r.json()),
-    createContract: (data: { user_id: number; title: string; amount?: number; notes?: string }) =>
-      fetch(`${URLS.admin}/contracts`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
-    update: (data: { entity: string; id: number; [key: string]: unknown }) =>
-      fetch(`${URLS.admin}/update`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
-    artistTracks: (userId: number) =>
-      fetch(`${URLS.tracks}?user_id=${userId}`, { headers: authHeaders() }).then((r) => r.json()),
-    artistMessages: (userId: number) =>
-      fetch(`${URLS.chat}?user_id=${userId}`, { headers: authHeaders() }).then((r) => r.json()),
-    sendMessage: (text: string, userId: number) =>
-      fetch(URLS.chat, { method: "POST", headers: authHeaders(), body: JSON.stringify({ text, user_id: userId }) }).then((r) => r.json()),
-  },
-  contracts: {
-    list: () =>
-      fetch(`${URLS.admin}/contracts`, { headers: authHeaders() }).then((r) => r.json()),
+    artists: () => get("artists"),
+    contracts: (userId?: number) => get("contracts", userId ? `&user_id=${userId}` : ""),
+    createContract: (data: object) => post("contracts", data),
+    update: (data: object) => put("update", data),
+    artistTracks: (userId: number) => fetch(`${TRACKS}?user_id=${userId}`, { headers: headers() }).then(r => r.json()),
+    artistMessages: (userId: number) => get("messages", `&user_id=${userId}`),
+    sendMessage: (text: string, userId: number) => post("send-message", { text, user_id: userId }),
   },
   payment: {
-    create: (contractId: number, returnUrl: string) =>
-      fetch(`${URLS.admin}/pay`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ contract_id: contractId, return_url: returnUrl }) }).then((r) => r.json()),
+    create: (contractId: number, returnUrl: string) => post("pay", { contract_id: contractId, return_url: returnUrl }),
   },
   statistics: {
-    list: (userId?: number) =>
-      fetch(`${URLS.admin}/statistics${userId ? `?user_id=${userId}` : ""}`, { headers: authHeaders() }).then((r) => r.json()),
-    create: (data: { user_id: number; platform: string; track_title: string; streams: number; period?: string; notes?: string }) =>
-      fetch(`${URLS.admin}/statistics`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
-    delete: (id: number) =>
-      fetch(`${URLS.admin}/statistics/delete`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ id }) }).then((r) => r.json()),
+    list: (userId?: number) => get("statistics", userId ? `&user_id=${userId}` : ""),
+    create: (data: object) => post("statistics", data),
+    delete: (id: number) => post("del-stat", { id }),
   },
   visits: {
     track: (page: string, sessionId: string) =>
-      fetch(`${URLS.payPackage}/visit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ page, session_id: sessionId }) }).then((r) => r.json()).catch(() => null),
-    stats: () =>
-      fetch(`${URLS.payPackage}/visits`, { headers: authHeaders() }).then((r) => r.json()),
+      fetch(url("visit"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ page, session_id: sessionId }) }).then(r => r.json()).catch(() => null),
+    stats: () => get("visits"),
   },
   packages: {
-    pay: async (data: { package: string; name: string; contact: string; track?: string; return_url?: string }) => {
-      const r = await fetch(`${URLS.admin}?action=paypkg`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      const text = await r.text();
-      console.log("[pay-package] status:", r.status, "body:", text);
-      try { return JSON.parse(text); } catch { return { error: `Сервер вернул: ${text.slice(0, 200)}` }; }
+    pay: async (data: object) => {
+      try {
+        const r = await fetch(url("paypkg"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+        const text = await r.text();
+        try { return JSON.parse(text); } catch { return { error: `Ошибка: ${text.slice(0, 200)}` }; }
+      } catch (e: unknown) {
+        return { error: e instanceof Error ? e.message : "Сетевая ошибка" };
+      }
     },
   },
   releases: {
-    list: (userId?: number) =>
-      fetch(`${URLS.admin}/releases${userId ? `?user_id=${userId}` : ""}`, { headers: authHeaders() }).then((r) => r.json()),
-    create: (data: { user_id: number; title: string; artist_name?: string; upc?: string; cover_url?: string; status?: string; genre?: string; release_date?: string; notes?: string }) =>
-      fetch(`${URLS.admin}/releases`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
-    update: (data: { id: number; [key: string]: unknown }) =>
-      fetch(`${URLS.admin}/releases/update`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
-    myReleases: () =>
-      fetch(`${URLS.admin}/my-releases`, { headers: authHeaders() }).then((r) => r.json()),
+    list: (userId?: number) => get("releases", userId ? `&user_id=${userId}` : ""),
+    create: (data: object) => post("releases", data),
+    update: (data: object) => put("update-release", data),
+    myReleases: () => get("releases"),
   },
   distribution: {
-    submit: (data: { release_id?: number; platforms: string; message: string }) =>
-      fetch(`${URLS.admin}/distribution`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
-    myRequests: () =>
-      fetch(`${URLS.admin}/my-distribution`, { headers: authHeaders() }).then((r) => r.json()),
-    list: (userId?: number) =>
-      fetch(`${URLS.admin}/distribution${userId ? `?user_id=${userId}` : ""}`, { headers: authHeaders() }).then((r) => r.json()),
-    updateStatus: (id: number, status: string) =>
-      fetch(`${URLS.admin}/distribution/update`, { method: "PUT", headers: authHeaders(), body: JSON.stringify({ id, status }) }).then((r) => r.json()),
+    submit: (data: object) => post("distribution", data),
+    myRequests: () => get("distribution"),
+    list: (userId?: number) => get("distribution", userId ? `&user_id=${userId}` : ""),
+    updateStatus: (id: number, status: string) => put("update-distribution", { id, status }),
   },
   users: {
-    create: (data: { email: string; artist_name: string; password: string }) =>
-      fetch(`${URLS.admin}/create-user`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
+    create: (data: object) => post("create-user", data),
   },
 };

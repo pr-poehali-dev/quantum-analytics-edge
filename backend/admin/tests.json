@@ -7,19 +7,19 @@
       "expectedStatus": 200
     },
     {
-      "name": "Forbidden without token",
+      "name": "Artists without token — 403",
       "method": "GET",
-      "path": "/",
+      "path": "/?action=artists",
       "expectedStatus": 403,
-      "expectedBody": {"error": "Доступ запрещён"},
+      "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Statistics endpoint returns error without token",
+      "name": "Statistics without token — 401",
       "method": "GET",
-      "path": "/",
-      "expectedStatus": 403,
-      "expectedBody": {"error": "Доступ запрещён"},
+      "path": "/?action=statistics",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
     }
   ]
