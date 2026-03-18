@@ -1,3 +1,7 @@
-# quantum-analytics-edge
+# SoundForge — Сайт Битмейкера
 
-Initial repository setup for pr-poehali-dev/quantum-analytics-edge
+![Preview](https://cdn.poehali.dev/templates/soundforge-ru/preview-ru.jpg)
+
+Современный лендинг для музыкального продюсера или битмейкера. Тёмная тема с интерактивным фоном из частиц, секции с лицензиями на биты, информацией о себе и контактной формой. Идеально подходит для продажи битов и продвижения своего творчества.
+
+`"tags": ["landing", "portfolio", "dark", "creative", "animations"]`
