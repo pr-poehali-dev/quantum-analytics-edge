@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import Icon from "@/components/ui/icon";
 
 const artists = [
-  { name: "TomLuv", url: "https://music.yandex.ru/artist/17970337" },
+  { name: "TomLuv", url: "https://music.yandex.ru/artist/17970337", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/8eb66602-d35a-4118-852d-3f6329c87dd0.jpg" },
   { name: "Нэтшанэт", url: "https://music.yandex.ru/artist/24577979" },
   { name: "VOINOVA", url: "https://music.yandex.ru/artist/11202759" },
   { name: "808 FAY", url: "https://music.yandex.ru/artist/25131782" },
@@ -72,7 +72,13 @@ const ArtistsSection = () => {
                 style={{ transitionDelay: `${index * 60}ms` }}
               >
                 <div className="aspect-square w-full overflow-hidden">
-                  {!hasError ? (
+                  {artist.photo ? (
+                    <img
+                      src={artist.photo}
+                      alt={artist.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : !hasError ? (
                     <img
                       src={`https://avatars.mds.yandex.net/get-music-artist-cover/${id}/200x200`}
                       alt={artist.name}
