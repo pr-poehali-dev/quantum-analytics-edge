@@ -80,6 +80,6 @@ export const api = {
   },
   packages: {
     pay: (data: { package: string; name: string; contact: string; track?: string; return_url?: string }) =>
-      fetch(`${URLS.payPackage}/pay`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then((r) => r.json()),
+      fetch(`${URLS.payPackage}/pay-package`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then((r) => r.json()),
   },
 };
