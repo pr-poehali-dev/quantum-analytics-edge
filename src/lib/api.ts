@@ -59,4 +59,8 @@ export const api = {
     list: () =>
       fetch(`${URLS.admin}/contracts`, { headers: authHeaders() }).then((r) => r.json()),
   },
+  payment: {
+    create: (contractId: number, returnUrl: string) =>
+      fetch(`${URLS.admin}/pay`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ contract_id: contractId, return_url: returnUrl }) }).then((r) => r.json()),
+  },
 };

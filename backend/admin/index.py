@@ -1,9 +1,12 @@
 """
-Административные функции: список артистов, управление контрактами и статусами треков.
+Административные функции и оплата: артисты, контракты, треки, платежи ЮКасса.
 """
 import json
 import os
+import uuid
 import psycopg2
+import requests
+from requests.auth import HTTPBasicAuth
 
 CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
@@ -37,6 +40,66 @@ def handler(event: dict, context) -> dict:
     conn = get_conn()
     cur = conn.cursor()
 
+    # Вебхук от ЮКасса (без авторизации)
+    if path.endswith('/webhook') and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        event_type = body.get('event', '')
+        payment_obj = body.get('object', {})
+        payment_id = payment_obj.get('id')
+        if event_type == 'payment.succeeded' and payment_id:
+            cur.execute(f"UPDATE {schema}.contracts SET payment_status = 'paid' WHERE yookassa_payment_id = %s", (payment_id,))
+            conn.commit()
+        return {'statusCode': 200, 'headers': CORS_HEADERS, 'body': 'ok'}
+
+    # Создание платежа (артист)
+    if path.endswith('/pay') and method == 'POST':
+        user = get_user(cur, token, schema)
+        if not user:
+            return json_response(401, {'error': 'Не авторизован'})
+
+        body = json.loads(event.get('body') or '{}')
+        contract_id = body.get('contract_id')
+        return_url = body.get('return_url', 'https://kalashnikovsound.ru/cabinet')
+
+        if not contract_id:
+            return json_response(400, {'error': 'Укажите договор'})
+
+        cur.execute(f'SELECT id, title, amount, user_id FROM {schema}.contracts WHERE id = %s', (contract_id,))
+        contract = cur.fetchone()
+        if not contract:
+            return json_response(404, {'error': 'Договор не найден'})
+        if contract[3] != user[0] and user[1] != 'admin':
+            return json_response(403, {'error': 'Доступ запрещён'})
+        if not contract[2]:
+            return json_response(400, {'error': 'Сумма договора не указана'})
+
+        shop_id = os.environ['YOOKASSA_SHOP_ID']
+        secret_key = os.environ['YOOKASSA_SECRET_KEY']
+        idempotence_key = str(uuid.uuid4())
+
+        resp = requests.post(
+            'https://api.yookassa.ru/v3/payments',
+            json={
+                'amount': {'value': str(contract[2]), 'currency': 'RUB'},
+                'confirmation': {'type': 'redirect', 'return_url': return_url},
+                'capture': True,
+                'description': f'Оплата по договору: {contract[1]}',
+                'metadata': {'contract_id': str(contract_id)},
+            },
+            auth=HTTPBasicAuth(shop_id, secret_key),
+            headers={'Idempotence-Key': idempotence_key},
+        )
+        data = resp.json()
+        if resp.status_code != 200:
+            return json_response(500, {'error': data.get('description', 'Ошибка ЮКасса')})
+
+        payment_id = data['id']
+        payment_url = data['confirmation']['confirmation_url']
+        cur.execute(f"UPDATE {schema}.contracts SET yookassa_payment_id = %s, payment_url = %s WHERE id = %s", (payment_id, payment_url, contract_id))
+        conn.commit()
+        return json_response(200, {'payment_url': payment_url})
+
+    # Все остальные маршруты — только для admin
     user = get_user(cur, token, schema)
     if not user or user[1] != 'admin':
         return json_response(403, {'error': 'Доступ запрещён'})
@@ -55,10 +118,8 @@ def handler(event: dict, context) -> dict:
         title = body.get('title', '').strip()
         amount = body.get('amount')
         notes = body.get('notes', '')
-
         if not user_id or not title:
             return json_response(400, {'error': 'Укажите артиста и название'})
-
         cur.execute(f'INSERT INTO {schema}.contracts (user_id, title, amount, notes) VALUES (%s, %s, %s, %s) RETURNING id, created_at', (user_id, title, amount, notes))
         row = cur.fetchone()
         conn.commit()
@@ -67,9 +128,8 @@ def handler(event: dict, context) -> dict:
     # Обновить статус контракта или трека
     if path.endswith('/update') and method == 'PUT':
         body = json.loads(event.get('body') or '{}')
-        entity = body.get('entity')  # 'contract' или 'track'
+        entity = body.get('entity')
         entity_id = body.get('id')
-
         if entity == 'contract':
             contract_status = body.get('contract_status')
             payment_status = body.get('payment_status')
@@ -80,11 +140,10 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"UPDATE {schema}.tracks SET status = COALESCE(%s, status), notes = COALESCE(%s, notes) WHERE id = %s", (status, notes, entity_id))
         else:
             return json_response(400, {'error': 'Неверный тип'})
-
         conn.commit()
         return json_response(200, {'ok': True})
 
-    # Контракты артиста
+    # Контракты
     if path.endswith('/contracts') and method == 'GET':
         params = event.get('queryStringParameters') or {}
         target_user_id = params.get('user_id')

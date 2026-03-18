@@ -1,0 +1,2 @@
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS yookassa_payment_id VARCHAR(255);
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS payment_url TEXT;

@@ -43,6 +43,7 @@ export default function Cabinet() {
   const [uploading, setUploading] = useState(false);
   const [trackTitle, setTrackTitle] = useState("");
   const [sending, setSending] = useState(false);
+  const [payingId, setPayingId] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
@@ -80,6 +81,13 @@ export default function Cabinet() {
       setUploading(false);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handlePay = async (contractId: number) => {
+    setPayingId(contractId);
+    const res = await api.payment.create(contractId, window.location.origin + "/cabinet");
+    setPayingId(null);
+    if (res.payment_url) window.location.href = res.payment_url;
   };
 
   const handleSend = async () => {
@@ -177,15 +185,25 @@ export default function Cabinet() {
                   <h4 className="font-semibold">{c.title}</h4>
                   {c.amount && <span className="text-white font-bold">{Number(c.amount).toLocaleString("ru")} ₽</span>}
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[c.contract_status] || "bg-zinc-700 text-zinc-200"}`}>
-                    Договор: {STATUS_LABELS[c.contract_status] || c.contract_status}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[String(c.contract_status)] || "bg-zinc-700 text-zinc-200"}`}>
+                    Договор: {STATUS_LABELS[String(c.contract_status)] || String(c.contract_status)}
                   </span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[c.payment_status] || "bg-zinc-700 text-zinc-200"}`}>
-                    Оплата: {STATUS_LABELS[c.payment_status] || c.payment_status}
+                  <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[String(c.payment_status)] || "bg-zinc-700 text-zinc-200"}`}>
+                    Оплата: {STATUS_LABELS[String(c.payment_status)] || String(c.payment_status)}
                   </span>
+                  {c.payment_status === "unpaid" && c.amount && (
+                    <Button
+                      size="sm"
+                      onClick={() => handlePay(Number(c.id))}
+                      disabled={payingId === Number(c.id)}
+                      className="ml-auto bg-white text-black hover:bg-zinc-200 text-xs h-7"
+                    >
+                      {payingId === Number(c.id) ? "Перенаправляю..." : "Оплатить"}
+                    </Button>
+                  )}
                 </div>
-                {c.notes && <p className="text-zinc-400 text-sm mt-2">{c.notes}</p>}
+                {c.notes && <p className="text-zinc-400 text-sm mt-2">{String(c.notes)}</p>}
               </div>
             ))}
           </div>
