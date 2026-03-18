@@ -88,6 +88,11 @@ const Header = () => {
                 Контакты
               </button>
             </li>
+            <li className="md:hidden">
+              <a href="/login" className="text-white hover:text-purple-400 transition-colors">
+                Личный кабинет
+              </a>
+            </li>
           </ul>
         </nav>
         <div className="hidden md:flex items-center gap-2">
