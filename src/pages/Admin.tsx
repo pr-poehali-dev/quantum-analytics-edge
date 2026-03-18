@@ -6,36 +6,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 
-type Tab = "artists" | "stats" | "chat";
+type Tab = "materials" | "releases" | "stats" | "chat";
+type SideTab = "artists" | "create-user";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 interface VisitStats { online: number; today: number; week: number; month: number; top_pages: {page: string; visits: number}[]; daily: {date: string; visits: number}[]; }
+interface Artist { id: number; email: string; artist_name: string; created_at: string; }
+interface Track { id: number; title: string; file_name: string; file_url: string; status: string; notes: string; }
+interface Contract { id: number; title: string; contract_status: string; payment_status: string; amount: string; notes: string; }
+interface Message { id: number; sender_role: string; text: string; created_at: string; }
+interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; created_at: string; }
 
 const STATUS_LABELS: Record<string, string> = {
   uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён",
   pending: "Ожидает", signed: "Подписан", cancelled: "Отменён", unpaid: "Не оплачен", paid: "Оплачен",
+  moderation: "На модерации", ready: "Готов к выпуску", published: "Опубликован",
+  new: "Новая", processing: "В обработке", done: "Выполнена",
 };
 const STATUS_COLORS: Record<string, string> = {
   uploaded: "bg-zinc-700 text-zinc-200", in_review: "bg-blue-500/20 text-blue-300",
   approved: "bg-green-500/20 text-green-300", rejected: "bg-red-500/20 text-red-300",
   pending: "bg-yellow-500/20 text-yellow-300", signed: "bg-green-500/20 text-green-300",
   cancelled: "bg-red-500/20 text-red-300", unpaid: "bg-orange-500/20 text-orange-300", paid: "bg-green-500/20 text-green-300",
+  moderation: "bg-yellow-500/20 text-yellow-300", ready: "bg-blue-500/20 text-blue-300", published: "bg-green-500/20 text-green-300",
+  new: "bg-zinc-700 text-zinc-200", processing: "bg-blue-500/20 text-blue-300", done: "bg-green-500/20 text-green-300",
 };
-
-interface Artist { id: number; email: string; artist_name: string; created_at: string; }
-interface Track { id: number; title: string; file_name: string; file_url: string; status: string; notes: string; }
-interface Contract { id: number; title: string; contract_status: string; payment_status: string; amount: string; notes: string; }
-interface Message { id: number; sender_role: string; text: string; created_at: string; }
 
 export default function Admin() {
   const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("artists");
+  const [sideTab, setSideTab] = useState<SideTab>("artists");
+  const [tab, setTab] = useState<Tab>("materials");
   const [artists, setArtists] = useState<Artist[]>([]);
   const [selected, setSelected] = useState<Artist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [releases, setReleases] = useState<Release[]>([]);
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
   const [newContract, setNewContract] = useState({ title: "", amount: "", notes: "" });
@@ -44,6 +51,12 @@ export default function Admin() {
   const [newStat, setNewStat] = useState({ platform: "", track_title: "", streams: "", period: "", notes: "" });
   const [addingStat, setAddingStat] = useState(false);
   const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
+  const [newRelease, setNewRelease] = useState({ title: "", artist_name: "", upc: "", genre: "", release_date: "", notes: "", cover_url: "" });
+  const [addingRelease, setAddingRelease] = useState(false);
+  const [newUser, setNewUser] = useState({ email: "", artist_name: "", password: "" });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [userError, setUserError] = useState("");
+  const [userSuccess, setUserSuccess] = useState("");
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,6 +76,7 @@ export default function Admin() {
     api.admin.contracts(selected.id).then((r) => setContracts(r.contracts || []));
     api.admin.artistMessages(selected.id).then((r) => setMessages(r.messages || []));
     api.statistics.list(selected.id).then((r) => setStats(r.statistics || []));
+    api.releases.list(selected.id).then((r) => setReleases(r.releases || []));
   }, [selected]);
 
   useEffect(() => {
@@ -88,16 +102,22 @@ export default function Admin() {
     setContracts((prev) => prev.map((c) => c.id === contractId ? { ...c, [field]: value } : c));
   };
 
+  const updateReleaseStatus = async (releaseId: number, status: string) => {
+    await api.releases.update({ id: releaseId, status });
+    setReleases((prev) => prev.map((r) => r.id === releaseId ? { ...r, status } : r));
+  };
+
+  const updateReleaseUpc = async (releaseId: number, upc: string) => {
+    await api.releases.update({ id: releaseId, upc });
+    setReleases((prev) => prev.map((r) => r.id === releaseId ? { ...r, upc } : r));
+  };
+
   const handleAddStat = async () => {
     if (!selected || !newStat.platform.trim() || !newStat.track_title.trim()) return;
     setAddingStat(true);
     const res = await api.statistics.create({
-      user_id: selected.id,
-      platform: newStat.platform,
-      track_title: newStat.track_title,
-      streams: Number(newStat.streams) || 0,
-      period: newStat.period,
-      notes: newStat.notes,
+      user_id: selected.id, platform: newStat.platform, track_title: newStat.track_title,
+      streams: Number(newStat.streams) || 0, period: newStat.period, notes: newStat.notes,
     });
     if (res.stat) setStats((prev) => [res.stat, ...prev]);
     setNewStat({ platform: "", track_title: "", streams: "", period: "", notes: "" });
@@ -113,14 +133,47 @@ export default function Admin() {
     if (!selected || !newContract.title.trim()) return;
     setCreatingContract(true);
     const res = await api.admin.createContract({
-      user_id: selected.id,
-      title: newContract.title,
-      amount: newContract.amount ? Number(newContract.amount) : undefined,
-      notes: newContract.notes,
+      user_id: selected.id, title: newContract.title,
+      amount: newContract.amount ? Number(newContract.amount) : undefined, notes: newContract.notes,
     });
     if (res.contract) setContracts((prev) => [res.contract, ...prev]);
     setNewContract({ title: "", amount: "", notes: "" });
     setCreatingContract(false);
+  };
+
+  const handleAddRelease = async () => {
+    if (!selected || !newRelease.title.trim()) return;
+    setAddingRelease(true);
+    const res = await api.releases.create({
+      user_id: selected.id,
+      title: newRelease.title,
+      artist_name: newRelease.artist_name || selected.artist_name,
+      upc: newRelease.upc || undefined,
+      cover_url: newRelease.cover_url || undefined,
+      genre: newRelease.genre || undefined,
+      release_date: newRelease.release_date || undefined,
+      notes: newRelease.notes || undefined,
+      status: "moderation",
+    });
+    if (res.release) setReleases((prev) => [res.release, ...prev]);
+    setNewRelease({ title: "", artist_name: "", upc: "", genre: "", release_date: "", notes: "", cover_url: "" });
+    setAddingRelease(false);
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUser.email.trim() || !newUser.artist_name.trim() || !newUser.password.trim()) return;
+    setCreatingUser(true);
+    setUserError("");
+    setUserSuccess("");
+    const res = await api.users.create(newUser);
+    if (res.user) {
+      setArtists((prev) => [res.user, ...prev]);
+      setUserSuccess(`Аккаунт для ${res.user.artist_name} создан`);
+      setNewUser({ email: "", artist_name: "", password: "" });
+    } else {
+      setUserError(res.error || "Ошибка создания аккаунта");
+    }
+    setCreatingUser(false);
   };
 
   if (loading || !user) return (
@@ -137,20 +190,34 @@ export default function Admin() {
           <a href="/" className="text-lg font-bold tracking-tighter block">Калашников Саунд</a>
           <p className="text-zinc-500 text-xs mt-1">Админ-панель</p>
         </div>
-        <div className="flex-1 overflow-y-auto p-3">
-          <p className="text-zinc-600 text-xs uppercase tracking-wider px-2 mb-2">Артисты</p>
-          {artists.length === 0 && <p className="text-zinc-500 text-sm px-2">Нет артистов</p>}
-          {artists.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => { setSelected(a); setTab("artists"); }}
-              className={`w-full text-left px-3 py-2.5 rounded-lg mb-1 transition-colors ${selected?.id === a.id ? "bg-white text-black" : "text-zinc-300 hover:bg-zinc-900"}`}
-            >
-              <p className="font-medium text-sm">{a.artist_name}</p>
-              <p className={`text-xs mt-0.5 ${selected?.id === a.id ? "text-zinc-600" : "text-zinc-500"}`}>{a.email}</p>
-            </button>
-          ))}
+
+        <div className="flex border-b border-white/10">
+          <button onClick={() => setSideTab("artists")} className={`flex-1 py-2.5 text-xs font-medium transition-colors ${sideTab === "artists" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-zinc-300"}`}>
+            Артисты
+          </button>
+          <button onClick={() => { setSideTab("create-user"); setSelected(null); }} className={`flex-1 py-2.5 text-xs font-medium transition-colors ${sideTab === "create-user" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-zinc-300"}`}>
+            + Создать
+          </button>
         </div>
+
+        <div className="flex-1 overflow-y-auto p-3">
+          {sideTab === "artists" && (
+            <>
+              {artists.length === 0 && <p className="text-zinc-500 text-sm px-2 mt-2">Нет артистов</p>}
+              {artists.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => { setSelected(a); setTab("materials"); setSideTab("artists"); }}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg mb-1 transition-colors ${selected?.id === a.id ? "bg-white text-black" : "text-zinc-300 hover:bg-zinc-900"}`}
+                >
+                  <p className="font-medium text-sm">{a.artist_name}</p>
+                  <p className={`text-xs mt-0.5 ${selected?.id === a.id ? "text-zinc-600" : "text-zinc-500"}`}>{a.email}</p>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+
         <div className="p-4 border-t border-white/10">
           <Button variant="ghost" size="sm" onClick={() => { logout(); navigate("/"); }} className="w-full text-zinc-400 hover:text-white">
             Выйти
@@ -160,7 +227,27 @@ export default function Admin() {
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
-        {!selected ? (
+
+        {/* Создание аккаунта */}
+        {sideTab === "create-user" && (
+          <div className="p-6 max-w-lg">
+            <h2 className="text-xl font-bold mb-2">Создать аккаунт артиста</h2>
+            <p className="text-zinc-400 text-sm mb-6">Артист сможет войти с этими данными и видеть свои релизы и статистику</p>
+            <div className="bg-zinc-900 border border-white/10 rounded-xl p-5 space-y-3">
+              <Input value={newUser.artist_name} onChange={(e) => setNewUser({ ...newUser, artist_name: e.target.value })} placeholder="Имя / псевдоним артиста" className="bg-black border-white/10 text-white placeholder:text-zinc-600" />
+              <Input value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="Email" type="email" className="bg-black border-white/10 text-white placeholder:text-zinc-600" />
+              <Input value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} placeholder="Пароль" type="password" className="bg-black border-white/10 text-white placeholder:text-zinc-600" />
+              {userError && <p className="text-red-400 text-sm">{userError}</p>}
+              {userSuccess && <p className="text-green-400 text-sm">{userSuccess}</p>}
+              <Button onClick={handleCreateUser} disabled={creatingUser || !newUser.email.trim() || !newUser.artist_name.trim() || !newUser.password.trim()} className="w-full bg-white text-black hover:bg-zinc-200">
+                {creatingUser ? "Создаю..." : "Создать аккаунт"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Главная — посещаемость */}
+        {sideTab === "artists" && !selected && (
           <div className="p-6">
             <h2 className="text-xl font-bold mb-6">Посещаемость сайта</h2>
             {!visitStats ? (
@@ -183,7 +270,6 @@ export default function Admin() {
                     </div>
                   ))}
                 </div>
-
                 {visitStats.daily.length > 0 && (
                   <div className="bg-zinc-900 border border-white/10 rounded-xl p-4">
                     <p className="text-sm font-semibold mb-4 text-zinc-300">Посещения за 14 дней</p>
@@ -203,7 +289,6 @@ export default function Admin() {
                     </div>
                   </div>
                 )}
-
                 {visitStats.top_pages.length > 0 && (
                   <div className="bg-zinc-900 border border-white/10 rounded-xl p-4">
                     <p className="text-sm font-semibold mb-3 text-zinc-300">Топ страниц (7 дней)</p>
@@ -223,35 +308,40 @@ export default function Admin() {
                     </div>
                   </div>
                 )}
-
                 <p className="text-zinc-600 text-xs">← Выбери артиста слева для работы с его материалами</p>
               </div>
             )}
           </div>
-        ) : (
+        )}
+
+        {/* Карточка артиста */}
+        {sideTab === "artists" && selected && (
           <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3 mb-6">
+              <button onClick={() => setSelected(null)} className="text-zinc-500 hover:text-white">
+                <Icon name="ChevronLeft" size={20} />
+              </button>
               <div>
                 <h1 className="text-2xl font-bold">{selected.artist_name}</h1>
                 <p className="text-zinc-500 text-sm">{selected.email}</p>
               </div>
             </div>
 
-            <div className="flex gap-2 mb-6 bg-zinc-900 rounded-xl p-1 max-w-lg">
-              {(["artists", "stats", "chat"] as Tab[]).map((t) => (
+            <div className="flex gap-1 mb-6 bg-zinc-900 rounded-xl p-1 max-w-xl overflow-x-auto">
+              {(["materials", "releases", "stats", "chat"] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
                 >
-                  {t === "artists" ? "Материалы" : t === "stats" ? "Статистика" : "Чат"}
+                  {t === "materials" ? "Материалы" : t === "releases" ? "Релизы" : t === "stats" ? "Статистика" : "Чат"}
                 </button>
               ))}
             </div>
 
-            {tab === "artists" && (
+            {/* Вкладка Материалы */}
+            {tab === "materials" && (
               <div className="space-y-6">
-                {/* Треки */}
                 <div>
                   <h3 className="font-semibold mb-3">Треки</h3>
                   {tracks.length === 0 && <p className="text-zinc-500 text-sm">Треков нет</p>}
@@ -263,11 +353,7 @@ export default function Admin() {
                           <p className="text-zinc-500 text-xs">{track.file_name}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <select
-                            value={track.status}
-                            onChange={(e) => updateTrackStatus(track.id, e.target.value)}
-                            className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer ${STATUS_COLORS[track.status] || "bg-zinc-700 text-zinc-200"}`}
-                          >
+                          <select value={track.status} onChange={(e) => updateTrackStatus(track.id, e.target.value)} className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer ${STATUS_COLORS[track.status] || "bg-zinc-700 text-zinc-200"}`}>
                             {["uploaded", "in_review", "approved", "rejected"].map((s) => (
                               <option key={s} value={s} className="bg-zinc-900 text-white">{STATUS_LABELS[s]}</option>
                             ))}
@@ -283,7 +369,6 @@ export default function Admin() {
                   </div>
                 </div>
 
-                {/* Договоры */}
                 <div>
                   <h3 className="font-semibold mb-3">Договоры</h3>
                   <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 mb-3 space-y-2">
@@ -323,40 +408,103 @@ export default function Admin() {
               </div>
             )}
 
-            {tab === "stats" && (
-              <div className="space-y-4 max-w-2xl">
-                <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 space-y-3">
-                  <h3 className="font-semibold text-sm">Добавить статистику прослушиваний</h3>
+            {/* Вкладка Релизы */}
+            {tab === "releases" && (
+              <div className="space-y-5 max-w-2xl">
+                <div className="bg-zinc-900 border border-white/10 rounded-xl p-5 space-y-3">
+                  <p className="font-semibold text-sm mb-1">Добавить релиз</p>
                   <div className="grid grid-cols-2 gap-2">
-                    <Input value={newStat.track_title} onChange={(e) => setNewStat({ ...newStat, track_title: e.target.value })} placeholder="Название трека" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
-                    <Input value={newStat.platform} onChange={(e) => setNewStat({ ...newStat, platform: e.target.value })} placeholder="Платформа (Яндекс.Музыка...)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
-                    <Input value={newStat.streams} onChange={(e) => setNewStat({ ...newStat, streams: e.target.value })} placeholder="Прослушиваний" type="number" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
-                    <Input value={newStat.period} onChange={(e) => setNewStat({ ...newStat, period: e.target.value })} placeholder="Период (янв 2025)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newRelease.title} onChange={(e) => setNewRelease({ ...newRelease, title: e.target.value })} placeholder="Название релиза *" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm col-span-2" />
+                    <Input value={newRelease.artist_name} onChange={(e) => setNewRelease({ ...newRelease, artist_name: e.target.value })} placeholder={`Артист (по умолч. ${selected.artist_name})`} className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm col-span-2" />
+                    <Input value={newRelease.upc} onChange={(e) => setNewRelease({ ...newRelease, upc: e.target.value })} placeholder="UPC код" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newRelease.genre} onChange={(e) => setNewRelease({ ...newRelease, genre: e.target.value })} placeholder="Жанр" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newRelease.release_date} onChange={(e) => setNewRelease({ ...newRelease, release_date: e.target.value })} placeholder="Дата выхода" type="date" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newRelease.cover_url} onChange={(e) => setNewRelease({ ...newRelease, cover_url: e.target.value })} placeholder="Ссылка на обложку" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newRelease.notes} onChange={(e) => setNewRelease({ ...newRelease, notes: e.target.value })} placeholder="Заметки" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm col-span-2" />
                   </div>
-                  <Input value={newStat.notes} onChange={(e) => setNewStat({ ...newStat, notes: e.target.value })} placeholder="Комментарий (необязательно)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
-                  <Button onClick={handleAddStat} disabled={addingStat || !newStat.platform.trim() || !newStat.track_title.trim()} size="sm" className="bg-white text-black hover:bg-zinc-200">
-                    {addingStat ? "Добавляю..." : "Добавить запись"}
+                  <Button onClick={handleAddRelease} disabled={addingRelease || !newRelease.title.trim()} size="sm" className="bg-white text-black hover:bg-zinc-200">
+                    {addingRelease ? "Добавляю..." : "Добавить релиз"}
                   </Button>
                 </div>
+
+                {releases.length === 0 && <p className="text-zinc-500 text-sm">Релизов нет</p>}
+                <div className="space-y-3">
+                  {releases.map((rel) => (
+                    <div key={rel.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4">
+                      <div className="flex gap-4">
+                        {rel.cover_url && (
+                          <img src={rel.cover_url} alt={rel.title} className="w-16 h-16 rounded-lg object-cover shrink-0" />
+                        )}
+                        {!rel.cover_url && (
+                          <div className="w-16 h-16 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0">
+                            <Icon name="Music" size={20} className="text-zinc-600" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div>
+                              <p className="font-semibold">{rel.title}</p>
+                              <p className="text-zinc-400 text-xs">{rel.artist_name}</p>
+                            </div>
+                            <select
+                              value={rel.status}
+                              onChange={(e) => updateReleaseStatus(rel.id, e.target.value)}
+                              className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer shrink-0 ${STATUS_COLORS[rel.status] || "bg-zinc-700 text-zinc-200"}`}
+                            >
+                              {["moderation", "ready", "published"].map((s) => (
+                                <option key={s} value={s} className="bg-zinc-900 text-white">{STATUS_LABELS[s]}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {rel.genre && <span className="text-zinc-500 text-xs">{rel.genre}</span>}
+                            {rel.release_date && <span className="text-zinc-500 text-xs">{rel.release_date}</span>}
+                            <div className="flex items-center gap-1">
+                              <span className="text-zinc-500 text-xs">UPC:</span>
+                              <input
+                                defaultValue={rel.upc || ""}
+                                onBlur={(e) => { if (e.target.value !== (rel.upc || "")) updateReleaseUpc(rel.id, e.target.value); }}
+                                placeholder="—"
+                                className="bg-transparent text-xs text-zinc-300 border-b border-zinc-700 focus:border-white outline-none w-36 py-0.5"
+                              />
+                            </div>
+                          </div>
+                          {rel.notes && <p className="text-zinc-500 text-xs mt-1">{rel.notes}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Вкладка Статистика */}
+            {tab === "stats" && (
+              <div className="space-y-4 max-w-2xl">
+                <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 space-y-2">
+                  <p className="font-semibold text-sm mb-1">Добавить запись</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input value={newStat.platform} onChange={(e) => setNewStat({ ...newStat, platform: e.target.value })} placeholder="Платформа (Spotify, VK...)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newStat.track_title} onChange={(e) => setNewStat({ ...newStat, track_title: e.target.value })} placeholder="Название трека" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newStat.streams} onChange={(e) => setNewStat({ ...newStat, streams: e.target.value })} placeholder="Прослушивания" type="number" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newStat.period} onChange={(e) => setNewStat({ ...newStat, period: e.target.value })} placeholder="Период (напр. Март 2026)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                  </div>
+                  <Button onClick={handleAddStat} disabled={addingStat || !newStat.platform.trim() || !newStat.track_title.trim()} size="sm" className="bg-white text-black hover:bg-zinc-200">
+                    {addingStat ? "Добавляю..." : "Добавить"}
+                  </Button>
+                </div>
+                {stats.length === 0 && <p className="text-zinc-500 text-sm">Статистики нет</p>}
                 <div className="space-y-2">
-                  {stats.length === 0 && <p className="text-zinc-500 text-sm">Статистики пока нет</p>}
                   {stats.map((s) => (
                     <div key={s.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{s.track_title}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full">{s.platform}</span>
-                          {s.period && <span className="text-zinc-500 text-xs">{s.period}</span>}
-                        </div>
-                        {s.notes && <p className="text-zinc-400 text-xs mt-1">{s.notes}</p>}
+                        <p className="font-medium text-sm">{s.track_title}</p>
+                        <p className="text-zinc-500 text-xs">{s.platform} · {s.period}</p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
-                        <div className="text-right">
-                          <p className="text-lg font-bold">{Number(s.streams).toLocaleString("ru")}</p>
-                          <p className="text-zinc-500 text-xs">прослушиваний</p>
-                        </div>
+                        <span className="font-bold text-white">{Number(s.streams).toLocaleString("ru")}</span>
                         <button onClick={() => handleDeleteStat(s.id)} className="text-zinc-600 hover:text-red-400 transition-colors">
-                          <Icon name="Trash2" size={16} />
+                          <Icon name="Trash2" size={14} />
                         </button>
                       </div>
                     </div>
@@ -365,24 +513,22 @@ export default function Admin() {
               </div>
             )}
 
+            {/* Вкладка Чат */}
             {tab === "chat" && (
-              <div className="bg-zinc-900 border border-white/10 rounded-2xl flex flex-col h-[500px] max-w-2xl">
-                <div className="p-4 border-b border-white/10">
-                  <p className="font-semibold">Чат с {selected.artist_name}</p>
-                </div>
-                <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {messages.length === 0 && <p className="text-zinc-500 text-center py-8">Сообщений пока нет</p>}
+              <div className="flex flex-col h-[calc(100vh-220px)] max-w-2xl">
+                <div ref={chatRef} className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1">
+                  {messages.length === 0 && <p className="text-zinc-500 text-sm">Сообщений нет</p>}
                   {messages.map((m) => (
                     <div key={m.id} className={`flex ${m.sender_role === "admin" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${m.sender_role === "admin" ? "bg-white text-black" : "bg-zinc-800 text-white"}`}>
-                        {m.sender_role === "artist" && <p className="text-xs text-zinc-400 mb-1">{selected.artist_name}</p>}
+                      <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${m.sender_role === "admin" ? "bg-white text-black" : "bg-zinc-800 text-white"}`}>
                         <p>{m.text}</p>
+                        <p className={`text-xs mt-1 ${m.sender_role === "admin" ? "text-zinc-500" : "text-zinc-500"}`}>{new Date(m.created_at).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="p-4 border-t border-white/10 flex gap-2">
-                  <Input value={msgText} onChange={(e) => setMsgText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend()} placeholder="Написать артисту..." className="bg-black border-white/10 text-white placeholder:text-zinc-600" />
+                <div className="flex gap-2">
+                  <Input value={msgText} onChange={(e) => setMsgText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend()} placeholder="Сообщение..." className="flex-1 bg-zinc-900 border-white/10 text-white placeholder:text-zinc-600" />
                   <Button onClick={handleSend} disabled={sending || !msgText.trim()} className="bg-white text-black hover:bg-zinc-200">
                     <Icon name="Send" size={16} />
                   </Button>

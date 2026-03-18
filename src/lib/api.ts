@@ -80,10 +80,34 @@ export const api = {
   },
   packages: {
     pay: async (data: { package: string; name: string; contact: string; track?: string; return_url?: string }) => {
-      const r = await fetch(`${URLS.payPackage}/pay-package`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const r = await fetch(`${URLS.admin}/pay-package`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const text = await r.text();
       console.log("[pay-package] status:", r.status, "body:", text);
       try { return JSON.parse(text); } catch { return { error: `Сервер вернул: ${text.slice(0, 200)}` }; }
     },
+  },
+  releases: {
+    list: (userId?: number) =>
+      fetch(`${URLS.admin}/releases${userId ? `?user_id=${userId}` : ""}`, { headers: authHeaders() }).then((r) => r.json()),
+    create: (data: { user_id: number; title: string; artist_name?: string; upc?: string; cover_url?: string; status?: string; genre?: string; release_date?: string; notes?: string }) =>
+      fetch(`${URLS.admin}/releases`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
+    update: (data: { id: number; [key: string]: unknown }) =>
+      fetch(`${URLS.admin}/releases/update`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
+    myReleases: () =>
+      fetch(`${URLS.admin}/my-releases`, { headers: authHeaders() }).then((r) => r.json()),
+  },
+  distribution: {
+    submit: (data: { release_id?: number; platforms: string; message: string }) =>
+      fetch(`${URLS.admin}/distribution`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
+    myRequests: () =>
+      fetch(`${URLS.admin}/my-distribution`, { headers: authHeaders() }).then((r) => r.json()),
+    list: (userId?: number) =>
+      fetch(`${URLS.admin}/distribution${userId ? `?user_id=${userId}` : ""}`, { headers: authHeaders() }).then((r) => r.json()),
+    updateStatus: (id: number, status: string) =>
+      fetch(`${URLS.admin}/distribution/update`, { method: "PUT", headers: authHeaders(), body: JSON.stringify({ id, status }) }).then((r) => r.json()),
+  },
+  users: {
+    create: (data: { email: string; artist_name: string; password: string }) =>
+      fetch(`${URLS.admin}/create-user`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
   },
 };

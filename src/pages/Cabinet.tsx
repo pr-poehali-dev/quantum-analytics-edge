@@ -6,32 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 
-type Tab = "tracks" | "contracts" | "stats" | "chat";
+type Tab = "tracks" | "releases" | "contracts" | "stats" | "chat";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 
+interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; }
+interface DistRequest { id: number; release_id: number | null; platforms: string; message: string; status: string; created_at: string; }
+
 const STATUS_LABELS: Record<string, string> = {
-  uploaded: "Загружен",
-  in_review: "На рассмотрении",
-  approved: "Одобрен",
-  rejected: "Отклонён",
-  pending: "Ожидает",
-  signed: "Подписан",
-  cancelled: "Отменён",
-  unpaid: "Не оплачен",
-  paid: "Оплачен",
+  uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён",
+  pending: "Ожидает", signed: "Подписан", cancelled: "Отменён", unpaid: "Не оплачен", paid: "Оплачен",
+  moderation: "На модерации", ready: "Готов к выпуску", published: "Опубликован",
+  new: "Новая заявка", processing: "В обработке", done: "Выполнена",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  uploaded: "bg-zinc-700 text-zinc-200",
-  in_review: "bg-blue-500/20 text-blue-300",
-  approved: "bg-green-500/20 text-green-300",
-  rejected: "bg-red-500/20 text-red-300",
-  pending: "bg-yellow-500/20 text-yellow-300",
-  signed: "bg-green-500/20 text-green-300",
-  cancelled: "bg-red-500/20 text-red-300",
-  unpaid: "bg-orange-500/20 text-orange-300",
-  paid: "bg-green-500/20 text-green-300",
+  uploaded: "bg-zinc-700 text-zinc-200", in_review: "bg-blue-500/20 text-blue-300",
+  approved: "bg-green-500/20 text-green-300", rejected: "bg-red-500/20 text-red-300",
+  pending: "bg-yellow-500/20 text-yellow-300", signed: "bg-green-500/20 text-green-300",
+  cancelled: "bg-red-500/20 text-red-300", unpaid: "bg-orange-500/20 text-orange-300", paid: "bg-green-500/20 text-green-300",
+  moderation: "bg-yellow-500/20 text-yellow-300", ready: "bg-blue-500/20 text-blue-300", published: "bg-green-500/20 text-green-300",
+  new: "bg-zinc-700 text-zinc-200", processing: "bg-blue-500/20 text-blue-300", done: "bg-green-500/20 text-green-300",
 };
 
 export default function Cabinet() {
@@ -42,6 +37,12 @@ export default function Cabinet() {
   const [contracts, setContracts] = useState<Record<string, unknown>[]>([]);
   const [messages, setMessages] = useState<Record<string, unknown>[]>([]);
   const [stats, setStats] = useState<Stat[]>([]);
+  const [releases, setReleases] = useState<Release[]>([]);
+  const [distRequests, setDistRequests] = useState<DistRequest[]>([]);
+  const [distForm, setDistForm] = useState({ platforms: "", message: "", release_id: "" });
+  const [submittingDist, setSubmittingDist] = useState(false);
+  const [distError, setDistError] = useState("");
+  const [distSuccess, setDistSuccess] = useState("");
   const [msgText, setMsgText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [trackTitle, setTrackTitle] = useState("");
@@ -59,12 +60,10 @@ export default function Cabinet() {
     if (!user) return;
     api.tracks.list().then((r) => setTracks(r.tracks || []));
     api.chat.messages().then((r) => setMessages(r.messages || []));
-    api.admin.contracts().then((r) => setContracts(r.contracts || [])).catch(() => {
-      fetch(`https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f/contracts?user_id=${user.id}`, {
-        headers: { "X-Session-Token": localStorage.getItem("ks_token") || "" }
-      }).then(r => r.json()).then(r => setContracts(r.contracts || []));
-    });
+    api.admin.contracts().then((r) => setContracts(r.contracts || []));
     api.statistics.list().then((r) => setStats(r.statistics || []));
+    api.releases.myReleases().then((r) => setReleases(r.releases || []));
+    api.distribution.myRequests().then((r) => setDistRequests(r.requests || []));
   }, [user]);
 
   useEffect(() => {
@@ -103,6 +102,26 @@ export default function Cabinet() {
     setSending(false);
   };
 
+  const handleDistSubmit = async () => {
+    if (!distForm.platforms.trim()) { setDistError("Укажите платформы"); return; }
+    setSubmittingDist(true);
+    setDistError("");
+    setDistSuccess("");
+    const res = await api.distribution.submit({
+      platforms: distForm.platforms,
+      message: distForm.message,
+      release_id: distForm.release_id ? Number(distForm.release_id) : undefined,
+    });
+    if (res.request) {
+      setDistRequests((prev) => [res.request, ...prev]);
+      setDistSuccess("Заявка отправлена! Мы свяжемся с вами.");
+      setDistForm({ platforms: "", message: "", release_id: "" });
+    } else {
+      setDistError(res.error || "Ошибка отправки заявки");
+    }
+    setSubmittingDist(false);
+  };
+
   if (loading || !user) return (
     <div className="min-h-screen bg-black flex items-center justify-center">
       <div className="text-white">Загрузка...</div>
@@ -125,14 +144,14 @@ export default function Cabinet() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex gap-2 mb-8 bg-zinc-900 rounded-xl p-1">
-          {(["tracks", "contracts", "stats", "chat"] as Tab[]).map((t) => (
+        <div className="flex gap-1 mb-8 bg-zinc-900 rounded-xl p-1 overflow-x-auto">
+          {(["tracks", "releases", "contracts", "stats", "chat"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
+              className={`flex-1 py-2.5 px-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
             >
-              {t === "tracks" ? "Треки" : t === "contracts" ? "Договоры" : t === "stats" ? "Статистика" : "Чат"}
+              {t === "tracks" ? "Треки" : t === "releases" ? "Релизы" : t === "contracts" ? "Договоры" : t === "stats" ? "Статистика" : "Чат"}
             </button>
           ))}
         </div>
@@ -177,6 +196,98 @@ export default function Cabinet() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {tab === "releases" && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-semibold mb-1">Мои релизы</h3>
+              <p className="text-zinc-500 text-sm mb-4">Релизы добавляются командой лейбла. Здесь вы можете отслеживать их статус и подать заявку на дистрибьюцию.</p>
+              {releases.length === 0 && <p className="text-zinc-500 py-6 text-center">Релизов пока нет</p>}
+              <div className="space-y-3">
+                {releases.map((rel) => (
+                  <div key={rel.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex gap-4">
+                    {rel.cover_url ? (
+                      <img src={rel.cover_url} alt={rel.title} className="w-16 h-16 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0">
+                        <Icon name="Music" size={20} className="text-zinc-600" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="font-semibold">{rel.title}</p>
+                        <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${STATUS_COLORS[rel.status] || "bg-zinc-700 text-zinc-200"}`}>
+                          {STATUS_LABELS[rel.status] || rel.status}
+                        </span>
+                      </div>
+                      <div className="flex gap-3 flex-wrap text-xs text-zinc-500">
+                        {rel.genre && <span>{rel.genre}</span>}
+                        {rel.release_date && <span>{rel.release_date}</span>}
+                        {rel.upc && <span>UPC: {rel.upc}</span>}
+                      </div>
+                      {rel.notes && <p className="text-zinc-400 text-xs mt-1">{rel.notes}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
+              <h3 className="font-semibold mb-1">Заявка на дистрибьюцию</h3>
+              <p className="text-zinc-500 text-sm mb-4">Выберите платформы и укажите детали — мы разместим ваш трек</p>
+              <div className="space-y-3">
+                {releases.length > 0 && (
+                  <select
+                    value={distForm.release_id}
+                    onChange={(e) => setDistForm({ ...distForm, release_id: e.target.value })}
+                    className="w-full bg-black border border-white/10 text-white rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="">Выберите релиз (необязательно)</option>
+                    {releases.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
+                  </select>
+                )}
+                <Input
+                  value={distForm.platforms}
+                  onChange={(e) => setDistForm({ ...distForm, platforms: e.target.value })}
+                  placeholder="Платформы: Spotify, Apple Music, VK, YouTube..."
+                  className="bg-black border-white/10 text-white placeholder:text-zinc-600"
+                />
+                <textarea
+                  value={distForm.message}
+                  onChange={(e) => setDistForm({ ...distForm, message: e.target.value })}
+                  placeholder="Дополнительные пожелания или информация о треке..."
+                  rows={3}
+                  className="w-full bg-black border border-white/10 text-white placeholder:text-zinc-600 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-white/30"
+                />
+                {distError && <p className="text-red-400 text-sm">{distError}</p>}
+                {distSuccess && <p className="text-green-400 text-sm">{distSuccess}</p>}
+                <Button onClick={handleDistSubmit} disabled={submittingDist || !distForm.platforms.trim()} className="bg-white text-black hover:bg-zinc-200">
+                  {submittingDist ? "Отправляю..." : "Подать заявку"}
+                </Button>
+              </div>
+            </div>
+
+            {distRequests.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-3">Мои заявки</h3>
+                <div className="space-y-2">
+                  {distRequests.map((r) => (
+                    <div key={r.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{r.platforms}</p>
+                        {r.message && <p className="text-zinc-500 text-xs mt-0.5">{r.message}</p>}
+                        <p className="text-zinc-600 text-xs mt-1">{new Date(r.created_at).toLocaleDateString("ru")}</p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${STATUS_COLORS[r.status] || "bg-zinc-700 text-zinc-200"}`}>
+                        {STATUS_LABELS[r.status] || r.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

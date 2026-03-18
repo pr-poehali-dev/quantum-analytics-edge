@@ -190,6 +190,43 @@ def handler(event: dict, context) -> dict:
         stats = [{'id': r[0], 'platform': r[1], 'track_title': r[2], 'streams': r[3], 'period': r[4], 'notes': r[5], 'created_at': str(r[6])} for r in rows]
         return json_response(200, {'statistics': stats})
 
+    # Заявка на дистрибьюцию от артиста (POST — любой авторизованный)
+    if path.endswith('/distribution') and method == 'POST':
+        artist_user = get_user(cur, token, schema)
+        if not artist_user:
+            return json_response(401, {'error': 'Не авторизован'})
+        body = json.loads(event.get('body') or '{}')
+        release_id = body.get('release_id') or None
+        platforms = body.get('platforms', '').strip()
+        message = body.get('message', '').strip()
+        cur.execute(
+            f"INSERT INTO {schema}.distribution_requests (user_id, release_id, platforms, message) VALUES (%s, %s, %s, %s) RETURNING id, created_at",
+            (artist_user[0], release_id, platforms, message)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return json_response(200, {'request': {'id': row[0], 'status': 'new', 'platforms': platforms, 'message': message, 'created_at': str(row[1])}})
+
+    # Релизы артиста для личного кабинета (GET, авторизованный)
+    if path.endswith('/my-releases') and method == 'GET':
+        artist_user = get_user(cur, token, schema)
+        if not artist_user:
+            return json_response(401, {'error': 'Не авторизован'})
+        cur.execute(f"SELECT id, title, artist_name, upc, cover_url, status, genre, release_date, notes, created_at FROM {schema}.releases WHERE user_id = %s ORDER BY created_at DESC", (artist_user[0],))
+        rows = cur.fetchall()
+        releases = [{'id': r[0], 'title': r[1], 'artist_name': r[2], 'upc': r[3], 'cover_url': r[4], 'status': r[5], 'genre': r[6], 'release_date': str(r[7]) if r[7] else None, 'notes': r[8], 'created_at': str(r[9])} for r in rows]
+        return json_response(200, {'releases': releases})
+
+    # Мои заявки на дистрибьюцию (личный кабинет)
+    if path.endswith('/my-distribution') and method == 'GET':
+        artist_user = get_user(cur, token, schema)
+        if not artist_user:
+            return json_response(401, {'error': 'Не авторизован'})
+        cur.execute(f"SELECT id, release_id, platforms, message, status, created_at FROM {schema}.distribution_requests WHERE user_id = %s ORDER BY created_at DESC", (artist_user[0],))
+        rows = cur.fetchall()
+        items = [{'id': r[0], 'release_id': r[1], 'platforms': r[2], 'message': r[3], 'status': r[4], 'created_at': str(r[5])} for r in rows]
+        return json_response(200, {'requests': items})
+
     # Все остальные маршруты — только для admin
     user = get_user(cur, token, schema)
     if not user or user[1] != 'admin':
@@ -201,6 +238,73 @@ def handler(event: dict, context) -> dict:
         rows = cur.fetchall()
         artists = [{'id': r[0], 'email': r[1], 'artist_name': r[2], 'created_at': str(r[3])} for r in rows]
         return json_response(200, {'artists': artists})
+
+    # Создать аккаунт артиста (только admin)
+    if path.endswith('/create-user') and method == 'POST':
+        import hashlib, secrets as sec
+        body = json.loads(event.get('body') or '{}')
+        email = body.get('email', '').strip().lower()
+        artist_name = body.get('artist_name', '').strip()
+        password = body.get('password', '').strip()
+        if not email or not artist_name or not password:
+            return json_response(400, {'error': 'Укажите email, имя и пароль'})
+        cur.execute(f"SELECT id FROM {schema}.users WHERE email = %s", (email,))
+        if cur.fetchone():
+            return json_response(400, {'error': 'Пользователь с таким email уже существует'})
+        pwd_hash = hashlib.sha256(password.encode()).hexdigest()
+        cur.execute(f"INSERT INTO {schema}.users (email, password_hash, artist_name, role) VALUES (%s, %s, %s, 'artist') RETURNING id, created_at", (email, pwd_hash, artist_name))
+        row = cur.fetchone()
+        conn.commit()
+        return json_response(200, {'user': {'id': row[0], 'email': email, 'artist_name': artist_name, 'created_at': str(row[1])}})
+
+    # Релизы артиста (GET)
+    if path.endswith('/releases') and method == 'GET':
+        params = event.get('queryStringParameters') or {}
+        target_user_id = params.get('user_id')
+        if target_user_id:
+            cur.execute(f"SELECT id, title, artist_name, upc, cover_url, status, genre, release_date, notes, created_at FROM {schema}.releases WHERE user_id = %s ORDER BY created_at DESC", (target_user_id,))
+        else:
+            cur.execute(f"SELECT id, title, artist_name, upc, cover_url, status, genre, release_date, notes, created_at FROM {schema}.releases ORDER BY created_at DESC")
+        rows = cur.fetchall()
+        releases = [{'id': r[0], 'title': r[1], 'artist_name': r[2], 'upc': r[3], 'cover_url': r[4], 'status': r[5], 'genre': r[6], 'release_date': str(r[7]) if r[7] else None, 'notes': r[8], 'created_at': str(r[9])} for r in rows]
+        return json_response(200, {'releases': releases})
+
+    # Создать релиз (admin)
+    if path.endswith('/releases') and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        target_user_id = body.get('user_id')
+        title = body.get('title', '').strip()
+        artist_name = body.get('artist_name', '').strip()
+        upc = body.get('upc', '').strip() or None
+        cover_url = body.get('cover_url', '').strip() or None
+        status = body.get('status', 'moderation')
+        genre = body.get('genre', '').strip() or None
+        release_date = body.get('release_date') or None
+        notes = body.get('notes', '').strip() or None
+        if not target_user_id or not title:
+            return json_response(400, {'error': 'Укажите артиста и название'})
+        cur.execute(
+            f"INSERT INTO {schema}.releases (user_id, title, artist_name, upc, cover_url, status, genre, release_date, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id, created_at",
+            (target_user_id, title, artist_name, upc, cover_url, status, genre, release_date, notes)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return json_response(200, {'release': {'id': row[0], 'title': title, 'artist_name': artist_name, 'upc': upc, 'cover_url': cover_url, 'status': status, 'genre': genre, 'release_date': release_date, 'notes': notes, 'created_at': str(row[1])}})
+
+    # Обновить релиз (admin)
+    if path.endswith('/releases/update') and method == 'PUT':
+        body = json.loads(event.get('body') or '{}')
+        release_id = body.get('id')
+        if not release_id:
+            return json_response(400, {'error': 'Укажите id'})
+        fields = {k: body[k] for k in ('title', 'artist_name', 'upc', 'cover_url', 'status', 'genre', 'release_date', 'notes') if k in body}
+        if not fields:
+            return json_response(400, {'error': 'Нечего обновлять'})
+        set_parts = ', '.join([f"{k} = %s" for k in fields])
+        values = list(fields.values()) + [release_id]
+        cur.execute(f"UPDATE {schema}.releases SET {set_parts}, updated_at = NOW() WHERE id = %s", values)
+        conn.commit()
+        return json_response(200, {'ok': True})
 
     # Добавить запись статистики (только admin)
     if path.endswith('/statistics') and method == 'POST':
@@ -274,5 +378,28 @@ def handler(event: dict, context) -> dict:
         rows = cur.fetchall()
         contracts = [{'id': r[0], 'title': r[1], 'contract_status': r[2], 'payment_status': r[3], 'amount': str(r[4]) if r[4] else None, 'notes': r[5], 'created_at': str(r[6])} for r in rows]
         return json_response(200, {'contracts': contracts})
+
+    # Заявки на дистрибьюцию (admin — все, артист — свои)
+    if path.endswith('/distribution') and method == 'GET':
+        params = event.get('queryStringParameters') or {}
+        target_user_id = params.get('user_id')
+        if target_user_id:
+            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at FROM {schema}.distribution_requests WHERE user_id = %s ORDER BY created_at DESC", (target_user_id,))
+        else:
+            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at FROM {schema}.distribution_requests ORDER BY created_at DESC")
+        rows = cur.fetchall()
+        items = [{'id': r[0], 'user_id': r[1], 'release_id': r[2], 'platforms': r[3], 'message': r[4], 'status': r[5], 'created_at': str(r[6])} for r in rows]
+        return json_response(200, {'requests': items})
+
+    # Обновить статус заявки (admin)
+    if path.endswith('/distribution/update') and method == 'PUT':
+        body = json.loads(event.get('body') or '{}')
+        req_id = body.get('id')
+        status = body.get('status')
+        if not req_id or not status:
+            return json_response(400, {'error': 'Укажите id и статус'})
+        cur.execute(f"UPDATE {schema}.distribution_requests SET status = %s WHERE id = %s", (status, req_id))
+        conn.commit()
+        return json_response(200, {'ok': True})
 
     return json_response(404, {'error': 'Not found'})
