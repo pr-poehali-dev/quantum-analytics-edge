@@ -63,4 +63,12 @@ export const api = {
     create: (contractId: number, returnUrl: string) =>
       fetch(`${URLS.admin}/pay`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ contract_id: contractId, return_url: returnUrl }) }).then((r) => r.json()),
   },
+  statistics: {
+    list: (userId?: number) =>
+      fetch(`${URLS.admin}/statistics${userId ? `?user_id=${userId}` : ""}`, { headers: authHeaders() }).then((r) => r.json()),
+    create: (data: { user_id: number; platform: string; track_title: string; streams: number; period?: string; notes?: string }) =>
+      fetch(`${URLS.admin}/statistics`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) }).then((r) => r.json()),
+    delete: (id: number) =>
+      fetch(`${URLS.admin}/statistics/delete`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ id }) }).then((r) => r.json()),
+  },
 };

@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Cabinet from "./pages/Cabinet";
 import Admin from "./pages/Admin";
+import LiveRadio from "./pages/LiveRadio";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/cabinet" element={<Cabinet />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/radio" element={<LiveRadio />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

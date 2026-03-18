@@ -1,5 +1,5 @@
 """
-Административные функции и оплата: артисты, контракты, треки, платежи ЮКасса.
+Административные функции и оплата: артисты, контракты, треки, платежи ЮКасса, статистика прослушиваний.
 """
 import json
 import os
@@ -10,7 +10,7 @@ from requests.auth import HTTPBasicAuth
 
 CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-Session-Token',
 }
 
@@ -99,6 +99,20 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         return json_response(200, {'payment_url': payment_url})
 
+    # Статистика прослушиваний (для артиста — своя, для admin — по user_id)
+    if path.endswith('/statistics') and method == 'GET':
+        user = get_user(cur, token, schema)
+        if not user:
+            return json_response(401, {'error': 'Не авторизован'})
+        params = event.get('queryStringParameters') or {}
+        target_user_id = params.get('user_id') if user[1] == 'admin' else user[0]
+        if not target_user_id:
+            return json_response(400, {'error': 'Укажите артиста'})
+        cur.execute(f'SELECT id, platform, track_title, streams, period, notes, created_at FROM {schema}.statistics WHERE user_id = %s ORDER BY created_at DESC', (target_user_id,))
+        rows = cur.fetchall()
+        stats = [{'id': r[0], 'platform': r[1], 'track_title': r[2], 'streams': r[3], 'period': r[4], 'notes': r[5], 'created_at': str(r[6])} for r in rows]
+        return json_response(200, {'statistics': stats})
+
     # Все остальные маршруты — только для admin
     user = get_user(cur, token, schema)
     if not user or user[1] != 'admin':
@@ -110,6 +124,35 @@ def handler(event: dict, context) -> dict:
         rows = cur.fetchall()
         artists = [{'id': r[0], 'email': r[1], 'artist_name': r[2], 'created_at': str(r[3])} for r in rows]
         return json_response(200, {'artists': artists})
+
+    # Добавить запись статистики (только admin)
+    if path.endswith('/statistics') and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        target_user_id = body.get('user_id')
+        platform = body.get('platform', '').strip()
+        track_title = body.get('track_title', '').strip()
+        streams = body.get('streams', 0)
+        period = body.get('period', '').strip()
+        notes = body.get('notes', '')
+        if not target_user_id or not platform or not track_title:
+            return json_response(400, {'error': 'Заполните все поля'})
+        cur.execute(
+            f'INSERT INTO {schema}.statistics (user_id, platform, track_title, streams, period, notes) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, created_at',
+            (target_user_id, platform, track_title, int(streams), period, notes)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return json_response(200, {'stat': {'id': row[0], 'platform': platform, 'track_title': track_title, 'streams': int(streams), 'period': period, 'notes': notes, 'created_at': str(row[1])}})
+
+    # Удалить запись статистики (только admin)
+    if path.endswith('/statistics/delete') and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        stat_id = body.get('id')
+        if not stat_id:
+            return json_response(400, {'error': 'Укажите id'})
+        cur.execute(f'UPDATE {schema}.statistics SET updated_at = NOW() WHERE id = %s RETURNING id', (stat_id,))
+        conn.commit()
+        return json_response(200, {'ok': True})
 
     # Создать контракт
     if path.endswith('/contracts') and method == 'POST':

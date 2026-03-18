@@ -13,6 +13,14 @@
       "expectedStatus": 403,
       "expectedBody": {"error": "Доступ запрещён"},
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Statistics endpoint returns error without token",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 403,
+      "expectedBody": {"error": "Доступ запрещён"},
+      "bodyMatcher": "partial"
     }
   ]
 }

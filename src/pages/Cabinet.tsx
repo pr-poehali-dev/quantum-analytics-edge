@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 
-type Tab = "tracks" | "contracts" | "chat";
+type Tab = "tracks" | "contracts" | "stats" | "chat";
+
+interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 
 const STATUS_LABELS: Record<string, string> = {
   uploaded: "Загружен",
@@ -39,6 +41,7 @@ export default function Cabinet() {
   const [tracks, setTracks] = useState<Record<string, unknown>[]>([]);
   const [contracts, setContracts] = useState<Record<string, unknown>[]>([]);
   const [messages, setMessages] = useState<Record<string, unknown>[]>([]);
+  const [stats, setStats] = useState<Stat[]>([]);
   const [msgText, setMsgText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [trackTitle, setTrackTitle] = useState("");
@@ -61,6 +64,7 @@ export default function Cabinet() {
         headers: { "X-Session-Token": localStorage.getItem("ks_token") || "" }
       }).then(r => r.json()).then(r => setContracts(r.contracts || []));
     });
+    api.statistics.list().then((r) => setStats(r.statistics || []));
   }, [user]);
 
   useEffect(() => {
@@ -122,13 +126,13 @@ export default function Cabinet() {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex gap-2 mb-8 bg-zinc-900 rounded-xl p-1">
-          {(["tracks", "contracts", "chat"] as Tab[]).map((t) => (
+          {(["tracks", "contracts", "stats", "chat"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
             >
-              {t === "tracks" ? "Треки" : t === "contracts" ? "Договоры" : "Чат"}
+              {t === "tracks" ? "Треки" : t === "contracts" ? "Договоры" : t === "stats" ? "Статистика" : "Чат"}
             </button>
           ))}
         </div>
@@ -206,6 +210,53 @@ export default function Cabinet() {
                 {c.notes && <p className="text-zinc-400 text-sm mt-2">{String(c.notes)}</p>}
               </div>
             ))}
+          </div>
+        )}
+
+        {tab === "stats" && (
+          <div className="space-y-4">
+            {stats.length === 0 ? (
+              <div className="text-center py-16">
+                <Icon name="BarChart2" size={48} className="text-zinc-700 mx-auto mb-4" />
+                <p className="text-zinc-500">Статистика прослушиваний пока не добавлена</p>
+                <p className="text-zinc-600 text-sm mt-1">Лейбл добавит данные по твоим трекам</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 text-center">
+                    <p className="text-3xl font-bold text-white">{stats.reduce((s, r) => s + r.streams, 0).toLocaleString("ru")}</p>
+                    <p className="text-zinc-500 text-sm mt-1">Всего прослушиваний</p>
+                  </div>
+                  <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 text-center">
+                    <p className="text-3xl font-bold text-white">{new Set(stats.map(s => s.track_title)).size}</p>
+                    <p className="text-zinc-500 text-sm mt-1">Треков в отчёте</p>
+                  </div>
+                  <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 text-center">
+                    <p className="text-3xl font-bold text-white">{new Set(stats.map(s => s.platform)).size}</p>
+                    <p className="text-zinc-500 text-sm mt-1">Платформ</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {stats.map((s) => (
+                    <div key={s.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{s.track_title}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full">{s.platform}</span>
+                          {s.period && <span className="text-zinc-500 text-xs">{s.period}</span>}
+                        </div>
+                        {s.notes && <p className="text-zinc-400 text-sm mt-1">{s.notes}</p>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xl font-bold text-white">{Number(s.streams).toLocaleString("ru")}</p>
+                        <p className="text-zinc-500 text-xs">прослушиваний</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 

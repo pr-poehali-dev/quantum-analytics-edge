@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 
-type Tab = "artists" | "chat";
+type Tab = "artists" | "stats" | "chat";
+
+interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 
 const STATUS_LABELS: Record<string, string> = {
   uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён",
@@ -37,6 +39,9 @@ export default function Admin() {
   const [sending, setSending] = useState(false);
   const [newContract, setNewContract] = useState({ title: "", amount: "", notes: "" });
   const [creatingContract, setCreatingContract] = useState(false);
+  const [stats, setStats] = useState<Stat[]>([]);
+  const [newStat, setNewStat] = useState({ platform: "", track_title: "", streams: "", period: "", notes: "" });
+  const [addingStat, setAddingStat] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,6 +59,7 @@ export default function Admin() {
     api.admin.artistTracks(selected.id).then((r) => setTracks(r.tracks || []));
     api.admin.contracts(selected.id).then((r) => setContracts(r.contracts || []));
     api.admin.artistMessages(selected.id).then((r) => setMessages(r.messages || []));
+    api.statistics.list(selected.id).then((r) => setStats(r.statistics || []));
   }, [selected]);
 
   useEffect(() => {
@@ -77,6 +83,27 @@ export default function Admin() {
   const updateContractStatus = async (contractId: number, field: string, value: string) => {
     await api.admin.update({ entity: "contract", id: contractId, [field]: value });
     setContracts((prev) => prev.map((c) => c.id === contractId ? { ...c, [field]: value } : c));
+  };
+
+  const handleAddStat = async () => {
+    if (!selected || !newStat.platform.trim() || !newStat.track_title.trim()) return;
+    setAddingStat(true);
+    const res = await api.statistics.create({
+      user_id: selected.id,
+      platform: newStat.platform,
+      track_title: newStat.track_title,
+      streams: Number(newStat.streams) || 0,
+      period: newStat.period,
+      notes: newStat.notes,
+    });
+    if (res.stat) setStats((prev) => [res.stat, ...prev]);
+    setNewStat({ platform: "", track_title: "", streams: "", period: "", notes: "" });
+    setAddingStat(false);
+  };
+
+  const handleDeleteStat = async (id: number) => {
+    await api.statistics.delete(id);
+    setStats((prev) => prev.filter((s) => s.id !== id));
   };
 
   const handleCreateContract = async () => {
@@ -143,14 +170,14 @@ export default function Admin() {
               </div>
             </div>
 
-            <div className="flex gap-2 mb-6 bg-zinc-900 rounded-xl p-1 max-w-xs">
-              {(["artists", "chat"] as Tab[]).map((t) => (
+            <div className="flex gap-2 mb-6 bg-zinc-900 rounded-xl p-1 max-w-lg">
+              {(["artists", "stats", "chat"] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
                 >
-                  {t === "artists" ? "Материалы" : "Чат"}
+                  {t === "artists" ? "Материалы" : t === "stats" ? "Статистика" : "Чат"}
                 </button>
               ))}
             </div>
@@ -225,6 +252,48 @@ export default function Admin() {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {tab === "stats" && (
+              <div className="space-y-4 max-w-2xl">
+                <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 space-y-3">
+                  <h3 className="font-semibold text-sm">Добавить статистику прослушиваний</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input value={newStat.track_title} onChange={(e) => setNewStat({ ...newStat, track_title: e.target.value })} placeholder="Название трека" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newStat.platform} onChange={(e) => setNewStat({ ...newStat, platform: e.target.value })} placeholder="Платформа (Яндекс.Музыка...)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newStat.streams} onChange={(e) => setNewStat({ ...newStat, streams: e.target.value })} placeholder="Прослушиваний" type="number" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newStat.period} onChange={(e) => setNewStat({ ...newStat, period: e.target.value })} placeholder="Период (янв 2025)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                  </div>
+                  <Input value={newStat.notes} onChange={(e) => setNewStat({ ...newStat, notes: e.target.value })} placeholder="Комментарий (необязательно)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                  <Button onClick={handleAddStat} disabled={addingStat || !newStat.platform.trim() || !newStat.track_title.trim()} size="sm" className="bg-white text-black hover:bg-zinc-200">
+                    {addingStat ? "Добавляю..." : "Добавить запись"}
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {stats.length === 0 && <p className="text-zinc-500 text-sm">Статистики пока нет</p>}
+                  {stats.map((s) => (
+                    <div key={s.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{s.track_title}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full">{s.platform}</span>
+                          {s.period && <span className="text-zinc-500 text-xs">{s.period}</span>}
+                        </div>
+                        {s.notes && <p className="text-zinc-400 text-xs mt-1">{s.notes}</p>}
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <p className="text-lg font-bold">{Number(s.streams).toLocaleString("ru")}</p>
+                          <p className="text-zinc-500 text-xs">прослушиваний</p>
+                        </div>
+                        <button onClick={() => handleDeleteStat(s.id)} className="text-zinc-600 hover:text-red-400 transition-colors">
+                          <Icon name="Trash2" size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

@@ -88,6 +88,12 @@ const Header = () => {
                 Контакты
               </button>
             </li>
+            <li>
+              <a href="/radio" className="text-white hover:text-purple-400 transition-colors flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                Live Radio
+              </a>
+            </li>
             <li className="md:hidden">
               <a href="/login" className="text-white hover:text-purple-400 transition-colors">
                 Личный кабинет
