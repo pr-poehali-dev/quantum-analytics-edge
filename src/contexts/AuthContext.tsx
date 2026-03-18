@@ -11,8 +11,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ error?: string }>;
-  register: (email: string, password: string, artistName: string) => Promise<{ error?: string }>;
+  login: (email: string, password: string) => Promise<{ error?: string; role?: string }>;
+  register: (email: string, password: string, artistName: string) => Promise<{ error?: string; role?: string }>;
   logout: () => void;
 }
 
@@ -25,12 +25,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem("ks_token");
     if (!token) { setLoading(false); return; }
+
+    const timeout = setTimeout(() => {
+      localStorage.removeItem("ks_token");
+      setLoading(false);
+    }, 5000);
+
     api.auth.me().then((res) => {
       if (res.user) setUser(res.user);
       else localStorage.removeItem("ks_token");
     }).catch(() => {
       localStorage.removeItem("ks_token");
-    }).finally(() => setLoading(false));
+    }).finally(() => {
+      clearTimeout(timeout);
+      setLoading(false);
+    });
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -40,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.token) return { error: "Нет ответа от сервера, попробуй позже" };
       localStorage.setItem("ks_token", res.token);
       setUser(res.user);
-      return {};
+      return { role: res.user?.role };
     } catch {
       return { error: "Ошибка соединения, попробуй позже" };
     }
@@ -53,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.token) return { error: "Нет ответа от сервера, попробуй позже" };
       localStorage.setItem("ks_token", res.token);
       setUser(res.user);
-      return {};
+      return { role: res.user?.role };
     } catch {
       return { error: "Ошибка соединения, попробуй позже" };
     }

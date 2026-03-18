@@ -24,7 +24,7 @@ export default function Login() {
       : await register(email, password, artistName);
     setLoading(false);
     if (res.error) { setError(res.error); return; }
-    navigate("/cabinet");
+    navigate(res.role === "admin" ? "/admin" : "/cabinet");
   };
 
   return (
