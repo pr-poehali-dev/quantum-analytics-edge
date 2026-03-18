@@ -4,6 +4,7 @@ import {
   HeroSection,
   LicenseSection,
   AboutSection,
+  ArtistsSection,
   DemoSection,
   ContactSection,
   Footer,
@@ -19,6 +20,7 @@ const Index = () => {
           <HeroSection />
           <LicenseSection />
           <AboutSection />
+          <ArtistsSection />
           <DemoSection />
           <ContactSection />
         </main>
