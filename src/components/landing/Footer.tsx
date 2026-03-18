@@ -6,7 +6,7 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <p className="text-zinc-400 mb-4 md:mb-0">
-            &copy; {new Date().getFullYear()} SoundForge. Все права защищены.
+            &copy; {new Date().getFullYear()} Калашников Саунд. Все права защищены.
           </p>
           <div className="flex space-x-4">
             <a

@@ -2,10 +2,10 @@ import { useRef, useEffect, useState } from "react";
 import { Headphones, Music, Mic2, Award } from "lucide-react";
 
 const achievements = [
-  { icon: <Headphones className="w-6 h-6" />, label: "Лет опыта", value: "10+" },
-  { icon: <Music className="w-6 h-6" />, label: "Созданных треков", value: "500+" },
-  { icon: <Mic2 className="w-6 h-6" />, label: "Коллабораций с артистами", value: "100+" },
-  { icon: <Award className="w-6 h-6" />, label: "Наград", value: "15+" },
+  { icon: <Headphones className="w-6 h-6" />, label: "Лет в индустрии", value: "10+" },
+  { icon: <Music className="w-6 h-6" />, label: "Выпущенных треков", value: "200+" },
+  { icon: <Mic2 className="w-6 h-6" />, label: "Продвинутых артистов", value: "50+" },
+  { icon: <Award className="w-6 h-6" />, label: "Успешных кейсов", value: "100+" },
 ];
 
 const AboutSection = () => {
@@ -59,21 +59,20 @@ const AboutSection = () => {
                 <div className="w-32 h-32 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
                   <Music className="w-16 h-16 text-white" />
                 </div>
-                <p className="text-zinc-400 text-lg">Фото продюсера</p>
+                <p className="text-zinc-400 text-lg">Александр Балашов</p>
+                <p className="text-zinc-500 text-sm">Продюсер · Калашников Саунд</p>
               </div>
             </div>
           </div>
           <div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">О SoundForge</h2>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">Александр Балашов</h2>
             <p className="text-lg mb-6 text-zinc-300">
-              SoundForge — это не просто битмейкер, это звуковой архитектор, создающий саундскейпы
-              будущего. С десятилетним опытом и чутким слухом на инновации, SoundForge раздвигает
-              границы возможного в музыкальном продакшене.
+              Генеральный директор и продюсер лейбла Калашников Саунд. Более 10 лет в музыкальной
+              индустрии — от создания звука до полноценного продвижения артистов на рынке.
             </p>
             <p className="text-lg mb-8 text-zinc-300">
-              От хитов в чартах до андеграундных гимнов — универсальный стиль и внимание к деталям
-              гарантируют, что каждый бит — это не просто трек, а путешествие, ждущее правильного
-              артиста.
+              Помогаю артистам не только звучать профессионально, но и строить карьеру: разрабатываю
+              маркетинговые стратегии, выстраиваю присутствие в соцсетях и вывожу на широкую аудиторию.
             </p>
             <div className="grid grid-cols-2 gap-6">
               {achievements.map((achievement, index) => (

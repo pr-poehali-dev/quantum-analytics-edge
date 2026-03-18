@@ -22,10 +22,10 @@ const HeroSection = () => {
   }, []);
 
   const stats = [
-    { icon: <Play className="w-6 h-6" />, label: "Продано битов", value: "500+" },
-    { icon: <Disc3 className="w-6 h-6" />, label: "Уникальных треков", value: "1000+" },
-    { icon: <Music2 className="w-6 h-6" />, label: "Довольных артистов", value: "200+" },
-    { icon: <AudioWaveform className="w-6 h-6" />, label: "Жанров", value: "10+" },
+    { icon: <Play className="w-6 h-6" />, label: "Продвинутых артистов", value: "50+" },
+    { icon: <Disc3 className="w-6 h-6" />, label: "Выпущенных треков", value: "200+" },
+    { icon: <Music2 className="w-6 h-6" />, label: "Лет в музыкальной индустрии", value: "10+" },
+    { icon: <AudioWaveform className="w-6 h-6" />, label: "Успешных кейсов", value: "100+" },
   ];
 
   return (
@@ -42,12 +42,12 @@ const HeroSection = () => {
           <div className="text-center mb-16 animate-fade-in">
             <h1 className="text-6xl md:text-8xl font-bold mb-6 tracking-tight relative">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-500">
-                Подними свой звук
+                Калашников Саунд
               </span>
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-zinc-400 max-w-3xl mx-auto">
-              Создаю уникальные биты, которые помогут артистам выделиться. От трэпа до лоу-фай — найди
-              свой идеальный звук и выведи музыку на новый уровень.
+              Продюсирование и продвижение артистов от Александра Балашова. Помогаем талантам выйти
+              на новый уровень — от создания звука до полноценного маркетинга в музыкальной индустрии.
             </p>
             <div className="relative inline-block">
               <Button
@@ -57,8 +57,8 @@ const HeroSection = () => {
                 onMouseLeave={() => setIsHovered(false)}
                 asChild
               >
-                <a href="#" target="_blank" rel="noopener noreferrer">
-                  <span className="relative z-10">Слушать биты</span>
+                <a href="#contact" onClick={(e) => { e.preventDefault(); document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }); }}>
+                  <span className="relative z-10">Обсудить проект</span>
                   <span
                     className={`ml-2 relative z-10 transition-transform duration-200 ${
                       isHovered ? "translate-x-1" : ""
