@@ -59,7 +59,7 @@ def handler(event: dict, context) -> dict:
 
         body = json.loads(event.get('body') or '{}')
         contract_id = body.get('contract_id')
-        return_url = body.get('return_url', 'https://kalashnikovsound.ru/cabinet')
+        return_url = body.get('return_url', 'https://kalashnikov-sound.ru/cabinet')
 
         if not contract_id:
             return json_response(400, {'error': 'Укажите договор'})

@@ -97,11 +97,11 @@ def handler(event: dict, context) -> dict:
             if email == 'admin' and admin_password and password == admin_password:
                 token = make_token()
                 expires = datetime.now() + timedelta(days=30)
-                cur.execute(f"SELECT id FROM {schema}.users WHERE email = 'admin@kalashnikovsound.ru'")
+                cur.execute(f"SELECT id FROM {schema}.users WHERE email = 'admin@kalashnikov-sound.ru'")
                 row = cur.fetchone()
                 if not row:
                     cur.execute(
-                        f"INSERT INTO {schema}.users (email, password_hash, artist_name, role) VALUES ('admin@kalashnikovsound.ru', %s, 'Администратор', 'admin') RETURNING id",
+                        f"INSERT INTO {schema}.users (email, password_hash, artist_name, role) VALUES ('admin@kalashnikov-sound.ru', %s, 'Администратор', 'admin') RETURNING id",
                         (hash_password(admin_password),)
                     )
                     user_id = cur.fetchone()[0]
