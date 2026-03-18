@@ -3,7 +3,7 @@ import Icon from "@/components/ui/icon";
 
 const artists = [
   { name: "TomLuv", url: "https://music.yandex.ru/artist/17970337", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/8eb66602-d35a-4118-852d-3f6329c87dd0.jpg" },
-  { name: "Нэтшанэт", url: "https://music.yandex.ru/artist/24577979" },
+  { name: "Нэтшанэт", url: "https://music.yandex.ru/artist/24577979", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/f7d19650-b5a0-4229-b27e-b9b1977b886b.jpeg" },
   { name: "VOINOVA", url: "https://music.yandex.ru/artist/11202759" },
   { name: "808 FAY", url: "https://music.yandex.ru/artist/25131782" },
   { name: "DIMUSIK", url: "https://music.yandex.ru/artist/16745184" },
