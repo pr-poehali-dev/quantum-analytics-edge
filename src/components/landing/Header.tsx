@@ -90,15 +90,24 @@ const Header = () => {
             </li>
           </ul>
         </nav>
-        <Button
-          variant="outline"
-          className="hidden md:block border-white/20 text-white hover:bg-white/10"
-          asChild
-        >
-          <a href="#contact" onClick={(e) => { e.preventDefault(); document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }); }}>
-            Связаться
-          </a>
-        </Button>
+        <div className="hidden md:flex items-center gap-2">
+          <Button
+            variant="ghost"
+            className="border-white/20 text-white hover:bg-white/10"
+            asChild
+          >
+            <a href="/login">Кабинет</a>
+          </Button>
+          <Button
+            variant="outline"
+            className="border-white/20 text-white hover:bg-white/10"
+            asChild
+          >
+            <a href="#contact" onClick={(e) => { e.preventDefault(); document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }); }}>
+              Связаться
+            </a>
+          </Button>
+        </div>
       </div>
     </header>
   );
