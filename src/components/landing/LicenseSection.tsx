@@ -16,7 +16,7 @@ interface LicenseOption {
 const licenseOptions: LicenseOption[] = [
   {
     name: "Продюсирование",
-    price: "от 30 000 ₽",
+    price: "от 5 000 ₽",
     icon: <Star className="w-6 h-6" />,
     features: [
       "Разработка концепции артиста",
@@ -29,7 +29,7 @@ const licenseOptions: LicenseOption[] = [
   },
   {
     name: "Маркетинг",
-    price: "от 20 000 ₽",
+    price: "от 10 000 ₽",
     icon: <Zap className="w-6 h-6" />,
     features: [
       "Стратегия продвижения артиста",
@@ -43,14 +43,13 @@ const licenseOptions: LicenseOption[] = [
   },
   {
     name: "Полный цикл",
-    price: "от 60 000 ₽",
+    price: "от 20 000 ₽",
     icon: <Crown className="w-6 h-6" />,
     features: [
       "Продюсирование + маркетинг",
       "Создание артист-бренда",
       "Разработка визуального стиля",
       "Организация съёмок клипа",
-      "Выход на лейблы и партнёров",
     ],
   },
   {
