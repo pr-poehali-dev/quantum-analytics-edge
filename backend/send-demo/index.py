@@ -2,7 +2,7 @@ import json
 import os
 import requests
 
-TELEGRAM_CHAT_ID = "@kslable_bot"
+TELEGRAM_CHAT_ID = "6162140923"
 
 
 def handler(event: dict, context) -> dict:
