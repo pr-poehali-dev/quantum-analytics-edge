@@ -28,23 +28,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api.auth.me().then((res) => {
       if (res.user) setUser(res.user);
       else localStorage.removeItem("ks_token");
+    }).catch(() => {
+      localStorage.removeItem("ks_token");
     }).finally(() => setLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await api.auth.login({ email, password });
-    if (res.error) return { error: res.error };
-    localStorage.setItem("ks_token", res.token);
-    setUser(res.user);
-    return {};
+    try {
+      const res = await api.auth.login({ email, password });
+      if (res.error) return { error: res.error };
+      if (!res.token) return { error: "Нет ответа от сервера, попробуй позже" };
+      localStorage.setItem("ks_token", res.token);
+      setUser(res.user);
+      return {};
+    } catch {
+      return { error: "Ошибка соединения, попробуй позже" };
+    }
   };
 
   const register = async (email: string, password: string, artistName: string) => {
-    const res = await api.auth.register({ email, password, artist_name: artistName });
-    if (res.error) return { error: res.error };
-    localStorage.setItem("ks_token", res.token);
-    setUser(res.user);
-    return {};
+    try {
+      const res = await api.auth.register({ email, password, artist_name: artistName });
+      if (res.error) return { error: res.error };
+      if (!res.token) return { error: "Нет ответа от сервера, попробуй позже" };
+      localStorage.setItem("ks_token", res.token);
+      setUser(res.user);
+      return {};
+    } catch {
+      return { error: "Ошибка соединения, попробуй позже" };
+    }
   };
 
   const logout = () => {
