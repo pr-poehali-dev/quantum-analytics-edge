@@ -18,6 +18,7 @@ export default function Login() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotError, setForgotError] = useState("");
+  const [forgotTempPw, setForgotTempPw] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,11 +35,15 @@ export default function Login() {
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotError("");
+    setForgotTempPw("");
     setLoading(true);
     try {
       const res = await api.auth.forgotPassword(forgotEmail);
       if (res.error) { setForgotError(res.error); }
-      else { setForgotSent(true); }
+      else {
+        setForgotSent(true);
+        if (res.temp_password) setForgotTempPw(res.temp_password);
+      }
     } catch {
       setForgotError("Ошибка соединения, попробуй позже");
     }
@@ -84,10 +89,22 @@ export default function Login() {
                 </form>
               </>
             ) : (
-              <div className="text-center py-4">
-                <div className="text-4xl mb-4">✉️</div>
-                <p className="text-green-400 font-medium mb-2">Письмо отправлено!</p>
-                <p className="text-zinc-400 text-sm">Проверь почту <span className="text-white">{forgotEmail}</span> и войди с временным паролем.</p>
+              <div className="py-4">
+                <div className="text-4xl mb-4 text-center">{forgotTempPw ? "🔑" : "✉️"}</div>
+                {forgotTempPw ? (
+                  <>
+                    <p className="text-yellow-400 font-medium mb-3 text-center">Письмо не доставлено — вот временный пароль:</p>
+                    <div className="bg-zinc-800 border border-yellow-500/30 rounded-xl p-4 text-center mb-3">
+                      <p className="text-white font-mono text-xl font-bold tracking-widest select-all">{forgotTempPw}</p>
+                    </div>
+                    <p className="text-zinc-400 text-sm text-center">Скопируй и войди с ним. Смени пароль после входа.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-green-400 font-medium mb-2 text-center">Письмо отправлено!</p>
+                    <p className="text-zinc-400 text-sm text-center">Проверь почту <span className="text-white">{forgotEmail}</span> и войди с временным паролем.</p>
+                  </>
+                )}
               </div>
             )}
           </div>

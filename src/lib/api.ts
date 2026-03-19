@@ -41,6 +41,7 @@ export const api = {
     contracts: (userId?: number) => get("contracts", userId ? `&user_id=${userId}` : ""),
     createContract: (data: object) => post("contracts", data),
     update: (data: object) => put("update", data),
+    updateTrack: (data: object) => put("update-track", data),
     artistTracks: (userId: number) => fetch(`${TRACKS}?user_id=${userId}`, { headers: headers() }).then(r => r.json()),
     artistMessages: (userId: number) => get("messages", `&user_id=${userId}`),
     sendMessage: (text: string, userId: number) => post("send-message", { text, user_id: userId }),
@@ -89,5 +90,14 @@ export const api = {
   },
   users: {
     create: (data: object) => post("create-user", data),
+    changePassword: (userId: number, newPassword: string) => post("change-password", { user_id: userId, new_password: newPassword }),
+  },
+  radio: {
+    like: (artistName: string, sessionId: string) => post("radio-like", { artist_name: artistName, session_id: sessionId }, false),
+    unlike: (artistName: string, sessionId: string) => post("radio-unlike", { artist_name: artistName, session_id: sessionId }, false),
+    top: (sessionId: string) => get("radio-top", `&session_id=${sessionId}`),
+  },
+  auth: {
+    changePassword: (newPassword: string) => fetch(`${AUTH}?action=change-password`, { method: "POST", headers: headers(), body: JSON.stringify({ new_password: newPassword }) }).then(r => r.json()),
   },
 };

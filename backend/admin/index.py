@@ -513,4 +513,90 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         return ok({'ok': True})
 
+    # Смена пароля пользователя (admin)
+    if action == 'change-password' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        user_id = body.get('user_id')
+        new_password = body.get('new_password', '').strip()
+        if not user_id or not new_password:
+            return err(400, 'Укажите пользователя и новый пароль')
+        if len(new_password) < 6:
+            return err(400, 'Пароль минимум 6 символов')
+        pw_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        cur.execute(f"UPDATE {schema}.users SET password_hash = %s WHERE id = %s AND role = 'artist'", (pw_hash, user_id))
+        conn.commit()
+        return ok({'ok': True})
+
+    # Редактирование трека (admin)
+    if action == 'update-track' and method == 'PUT':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        track_id = body.get('id')
+        if not track_id:
+            return err(400, 'Укажите id трека')
+        fields = {}
+        if 'title' in body: fields['title'] = body['title']
+        if 'status' in body: fields['status'] = body['status']
+        if 'notes' in body: fields['notes'] = body['notes']
+        if not fields:
+            return err(400, 'Нечего обновлять')
+        set_sql = ', '.join(f"{k} = %s" for k in fields)
+        cur.execute(f"UPDATE {schema}.tracks SET {set_sql} WHERE id = %s", list(fields.values()) + [track_id])
+        conn.commit()
+        return ok({'ok': True})
+
+    # Лайки треков на радио (публичное)
+    if action == 'radio-like' and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        artist_name = body.get('artist_name', '').strip()[:100]
+        session_id = body.get('session_id', '').strip()[:64]
+        if not artist_name or not session_id:
+            return err(400, 'Укажите артиста и session_id')
+        try:
+            cur.execute(f"INSERT INTO {schema}.radio_likes (artist_name, session_id) VALUES (%s, %s) ON CONFLICT (artist_name, session_id) DO NOTHING", (artist_name, session_id))
+            conn.commit()
+        except Exception:
+            pass
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.radio_likes WHERE artist_name = %s", (artist_name,))
+        count = cur.fetchone()[0]
+        return ok({'likes': count, 'artist_name': artist_name})
+
+    # Убрать лайк
+    if action == 'radio-unlike' and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        artist_name = body.get('artist_name', '').strip()[:100]
+        session_id = body.get('session_id', '').strip()[:64]
+        try:
+            cur.execute(f"DELETE FROM {schema}.radio_likes WHERE artist_name = %s AND session_id = %s", (artist_name, session_id))
+            conn.commit()
+        except Exception:
+            pass
+        cur.execute(f"SELECT COUNT(*) FROM {schema}.radio_likes WHERE artist_name = %s", (artist_name,))
+        count = cur.fetchone()[0]
+        return ok({'likes': count, 'artist_name': artist_name})
+
+    # Топ лайков (публичное)
+    if action == 'radio-top' and method == 'GET':
+        session_id = params.get('session_id', '')
+        cur.execute(f"""
+            SELECT artist_name, COUNT(*) as likes
+            FROM {schema}.radio_likes
+            WHERE liked_at > NOW() - INTERVAL '30 days'
+            GROUP BY artist_name ORDER BY likes DESC LIMIT 3
+        """)
+        top = [{'artist_name': r[0], 'likes': r[1]} for r in cur.fetchall()]
+        cur.execute(f"""
+            SELECT artist_name, COUNT(*) as total_likes,
+                   EXISTS(SELECT 1 FROM {schema}.radio_likes WHERE artist_name = rl.artist_name AND session_id = %s) as liked
+            FROM {schema}.radio_likes rl
+            GROUP BY artist_name
+        """, (session_id,))
+        all_likes = {r[0]: {'total': r[1], 'liked': r[2]} for r in cur.fetchall()}
+        return ok({'top': top, 'all_likes': all_likes})
+
     return err(404, 'Not found')

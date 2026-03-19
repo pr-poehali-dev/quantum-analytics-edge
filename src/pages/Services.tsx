@@ -132,7 +132,9 @@ export default function Services() {
               </ul>
 
               <a
-                href="/#demo"
+                href="https://t.me/managel_kslable"
+                target="_blank"
+                rel="noopener noreferrer"
                 className={`mt-1 w-full text-center py-2.5 rounded-xl text-sm font-semibold border ${s.border} ${s.accent} hover:bg-white/5 transition-colors`}
               >
                 Заказать →
@@ -158,13 +160,13 @@ export default function Services() {
               Написать нам
             </a>
             <a
-              href="https://t.me/kalashnikov_sound"
+              href="https://t.me/managel_kslable"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-7 py-3 border border-white/20 text-white font-semibold rounded-full hover:border-white/50 transition-colors"
             >
               <Icon name="MessageCircle" size={16} />
-              Telegram
+              Telegram менеджер
             </a>
           </div>
         </div>

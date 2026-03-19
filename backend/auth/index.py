@@ -194,7 +194,7 @@ def handler(event: dict, context) -> dict:
             cur.execute(f'SELECT id, artist_name FROM {schema}.users WHERE email = %s AND role = %s', (email, 'artist'))
             user = cur.fetchone()
             if not user:
-                return ok({'ok': True})
+                return ok({'ok': True, 'message': 'Если email зарегистрирован — письмо будет отправлено'})
 
             temp_pw = make_temp_password()
             pw_hash = hash_password(temp_pw)
@@ -217,7 +217,27 @@ def handler(event: dict, context) -> dict:
             """
             sent = send_email(email, 'Восстановление пароля — KALASHNIKOV SOUND', html)
             if not sent:
-                return err(500, 'Не удалось отправить письмо. Обратитесь к администратору: kalashnikov.sound@mail.ru')
+                return ok({'ok': True, 'temp_password': temp_pw, 'message': f'Письмо не отправлено. Временный пароль: {temp_pw}. Обратитесь к администратору.'})
+            return ok({'ok': True, 'message': 'Временный пароль отправлен на email'})
+
+        # Смена пароля (авторизованный пользователь)
+        if action == 'change-password' and method == 'POST':
+            token_val = event.get('headers', {}).get('X-Session-Token', '')
+            if not token_val:
+                return err(401, 'Не авторизован')
+            cur.execute(f'''
+                SELECT u.id FROM {schema}.sessions s
+                JOIN {schema}.users u ON u.id = s.user_id
+                WHERE s.token = %s AND s.expires_at > NOW()
+            ''', (token_val,))
+            row = cur.fetchone()
+            if not row:
+                return err(401, 'Сессия истекла')
+            new_password = str(body.get('new_password', ''))
+            if len(new_password) < 6:
+                return err(400, 'Пароль минимум 6 символов')
+            cur.execute(f'UPDATE {schema}.users SET password_hash = %s WHERE id = %s', (hash_password(new_password), row[0]))
+            conn.commit()
             return ok({'ok': True})
 
         return err(404, f'Unknown action: {action}')

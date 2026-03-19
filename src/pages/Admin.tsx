@@ -19,14 +19,14 @@ interface Release { id: number; title: string; artist_name: string; upc: string 
 interface Royalty { id: number; period: string; platform: string; track_title: string; amount: string; currency: string; notes: string | null; created_at: string; }
 
 const STATUS_LABELS: Record<string, string> = {
-  uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён",
+  uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён", deleted: "Удалён",
   pending: "Ожидает", signed: "Подписан", cancelled: "Отменён", unpaid: "Не оплачен", paid: "Оплачен",
   moderation: "На модерации", ready: "Готов к выпуску", published: "Опубликован",
   new: "Новая", processing: "В обработке", done: "Выполнена",
 };
 const STATUS_COLORS: Record<string, string> = {
   uploaded: "bg-zinc-700 text-zinc-200", in_review: "bg-blue-500/20 text-blue-300",
-  approved: "bg-green-500/20 text-green-300", rejected: "bg-red-500/20 text-red-300",
+  approved: "bg-green-500/20 text-green-300", rejected: "bg-red-500/20 text-red-300", deleted: "bg-red-900/40 text-red-500",
   pending: "bg-yellow-500/20 text-yellow-300", signed: "bg-green-500/20 text-green-300",
   cancelled: "bg-red-500/20 text-red-300", unpaid: "bg-orange-500/20 text-orange-300", paid: "bg-green-500/20 text-green-300",
   moderation: "bg-yellow-500/20 text-yellow-300", ready: "bg-blue-500/20 text-blue-300", published: "bg-green-500/20 text-green-300",
@@ -65,6 +65,12 @@ export default function Admin() {
   const [creatingUser, setCreatingUser] = useState(false);
   const [userError, setUserError] = useState("");
   const [userSuccess, setUserSuccess] = useState("");
+  const [changePwUserId, setChangePwUserId] = useState<number | null>(null);
+  const [changePwValue, setChangePwValue] = useState("");
+  const [changingPw, setChangingPw] = useState(false);
+  const [changePwMsg, setChangePwMsg] = useState("");
+  const [editingTrack, setEditingTrack] = useState<Track | null>(null);
+  const [savingTrack, setSavingTrack] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -233,6 +239,30 @@ export default function Admin() {
     setCreatingUser(false);
   };
 
+  const handleChangePassword = async () => {
+    if (!changePwUserId || !changePwValue.trim() || changePwValue.length < 6) return;
+    setChangingPw(true);
+    setChangePwMsg("");
+    const res = await api.users.changePassword(changePwUserId, changePwValue);
+    setChangingPw(false);
+    if (res.ok) {
+      setChangePwMsg("Пароль изменён");
+      setChangePwValue("");
+      setTimeout(() => { setChangePwUserId(null); setChangePwMsg(""); }, 2000);
+    } else {
+      setChangePwMsg(res.error || "Ошибка");
+    }
+  };
+
+  const handleSaveTrack = async () => {
+    if (!editingTrack) return;
+    setSavingTrack(true);
+    await api.admin.updateTrack({ id: editingTrack.id, title: editingTrack.title, status: editingTrack.status, notes: editingTrack.notes });
+    setTracks((prev) => prev.map((t) => t.id === editingTrack.id ? editingTrack : t));
+    setSavingTrack(false);
+    setEditingTrack(null);
+  };
+
   if (loading || !user) return (
     <div className="min-h-screen bg-black flex items-center justify-center">
       <div className="text-white">Загрузка...</div>
@@ -399,28 +429,64 @@ export default function Admin() {
             {/* Вкладка Материалы */}
             {tab === "materials" && (
               <div className="space-y-6">
+                {/* Смена пароля */}
+                <div className="bg-zinc-900 border border-yellow-500/20 rounded-xl p-4">
+                  <p className="font-semibold text-sm mb-3 text-yellow-400">Сменить пароль артиста</p>
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      value={changePwUserId === selected.id ? changePwValue : ""}
+                      onChange={(e) => { setChangePwUserId(selected.id); setChangePwValue(e.target.value); setChangePwMsg(""); }}
+                      placeholder="Новый пароль (мин. 6 символов)"
+                      className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm flex-1"
+                    />
+                    <Button onClick={handleChangePassword} disabled={changingPw || !changePwValue || changePwValue.length < 6} size="sm" className="bg-yellow-500 text-black hover:bg-yellow-400 shrink-0">
+                      {changingPw ? "..." : "Изменить"}
+                    </Button>
+                  </div>
+                  {changePwMsg && <p className={`text-xs mt-2 ${changePwMsg.includes("изменён") ? "text-green-400" : "text-red-400"}`}>{changePwMsg}</p>}
+                </div>
+
                 <div>
                   <h3 className="font-semibold mb-3">Треки</h3>
                   {tracks.length === 0 && <p className="text-zinc-500 text-sm">Треков нет</p>}
                   <div className="space-y-2">
                     {tracks.map((track) => (
-                      <div key={track.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{track.title}</p>
-                          <p className="text-zinc-500 text-xs">{track.file_name}</p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <select value={track.status} onChange={(e) => updateTrackStatus(track.id, e.target.value)} className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer ${STATUS_COLORS[track.status] || "bg-zinc-700 text-zinc-200"}`}>
-                            {["uploaded", "in_review", "approved", "rejected"].map((s) => (
-                              <option key={s} value={s} className="bg-zinc-900 text-white">{STATUS_LABELS[s]}</option>
-                            ))}
-                          </select>
-                          {track.file_url && (
-                            <a href={track.file_url} target="_blank" rel="noopener noreferrer">
-                              <Icon name="Download" size={16} className="text-zinc-400 hover:text-white" />
-                            </a>
-                          )}
-                        </div>
+                      <div key={track.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4">
+                        {editingTrack?.id === track.id ? (
+                          <div className="space-y-2">
+                            <Input value={editingTrack.title} onChange={(e) => setEditingTrack({ ...editingTrack, title: e.target.value })} className="bg-black border-white/10 text-white text-sm" />
+                            <select value={editingTrack.status} onChange={(e) => setEditingTrack({ ...editingTrack, status: e.target.value })} className="w-full bg-black border border-white/10 text-white rounded-md px-3 py-2 text-sm">
+                              {["uploaded", "in_review", "approved", "rejected", "deleted"].map((s) => (
+                                <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>
+                              ))}
+                            </select>
+                            <Input value={editingTrack.notes || ""} onChange={(e) => setEditingTrack({ ...editingTrack, notes: e.target.value })} placeholder="Примечание" className="bg-black border-white/10 text-white text-sm" />
+                            <div className="flex gap-2">
+                              <Button onClick={handleSaveTrack} disabled={savingTrack} size="sm" className="bg-white text-black hover:bg-zinc-200">{savingTrack ? "..." : "Сохранить"}</Button>
+                              <Button onClick={() => setEditingTrack(null)} size="sm" variant="ghost" className="text-zinc-400">Отмена</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{track.title}</p>
+                              <p className="text-zinc-500 text-xs">{track.file_name}</p>
+                              {track.notes && <p className="text-zinc-600 text-xs mt-0.5">{track.notes}</p>}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[track.status] || "bg-zinc-700 text-zinc-200"}`}>{STATUS_LABELS[track.status] || track.status}</span>
+                              <button onClick={() => setEditingTrack(track)} className="text-zinc-500 hover:text-white">
+                                <Icon name="Pencil" size={14} />
+                              </button>
+                              {track.file_url && (
+                                <a href={track.file_url} target="_blank" rel="noopener noreferrer">
+                                  <Icon name="Download" size={16} className="text-zinc-400 hover:text-white" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
+import AudioWavePlayer from "@/components/AudioWavePlayer";
 
 type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat";
 
@@ -15,7 +16,7 @@ interface DistRequest { id: number; release_id: number | null; platforms: string
 interface Royalty { id: number; period: string; platform: string; track_title: string; amount: string; currency: string; notes: string | null; created_at: string; }
 
 const STATUS_LABELS: Record<string, string> = {
-  uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён",
+  uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён", deleted: "Удалён",
   pending: "Ожидает", signed: "Подписан", cancelled: "Отменён", unpaid: "Не оплачен", paid: "Оплачен",
   moderation: "На модерации", ready: "Готов к выпуску", published: "Опубликован",
   new: "Новая заявка", processing: "В обработке", done: "Выполнена",
@@ -23,7 +24,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   uploaded: "bg-zinc-700 text-zinc-200", in_review: "bg-blue-500/20 text-blue-300",
-  approved: "bg-green-500/20 text-green-300", rejected: "bg-red-500/20 text-red-300",
+  approved: "bg-green-500/20 text-green-300", rejected: "bg-red-500/20 text-red-300", deleted: "bg-red-900/40 text-red-500",
   pending: "bg-yellow-500/20 text-yellow-300", signed: "bg-green-500/20 text-green-300",
   cancelled: "bg-red-500/20 text-red-300", unpaid: "bg-orange-500/20 text-orange-300", paid: "bg-green-500/20 text-green-300",
   moderation: "bg-yellow-500/20 text-yellow-300", ready: "bg-blue-500/20 text-blue-300", published: "bg-green-500/20 text-green-300",
@@ -51,6 +52,8 @@ export default function Cabinet() {
   const [trackTitle, setTrackTitle] = useState("");
   const [sending, setSending] = useState(false);
   const [payingId, setPayingId] = useState<number | null>(null);
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +77,14 @@ export default function Cabinet() {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedFileName(file.name);
+    const url = URL.createObjectURL(file);
+    setAudioPreviewUrl(url);
+  };
+
   const handleUpload = async () => {
     const file = fileRef.current?.files?.[0];
     if (!file || !trackTitle.trim()) return;
@@ -85,6 +96,9 @@ export default function Cabinet() {
       if (res.track) setTracks((prev) => [res.track, ...prev]);
       setTrackTitle("");
       if (fileRef.current) fileRef.current.value = "";
+      if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+      setAudioPreviewUrl(null);
+      setSelectedFileName("");
       setUploading(false);
     };
     reader.readAsDataURL(file);
@@ -166,6 +180,15 @@ export default function Cabinet() {
           <div className="space-y-6">
             <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
               <h3 className="font-semibold mb-4">Загрузить трек</h3>
+              <div className="bg-zinc-800/50 border border-white/5 rounded-xl p-4 mb-4">
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Требования к файлу</p>
+                <ul className="space-y-1.5">
+                  <li className="flex items-center gap-2 text-xs text-zinc-400"><Icon name="Music" size={12} className="text-green-400 shrink-0" /> Формат: <span className="text-white font-medium">WAV</span></li>
+                  <li className="flex items-center gap-2 text-xs text-zinc-400"><Icon name="Layers" size={12} className="text-green-400 shrink-0" /> Битрейт: <span className="text-white font-medium">16 bit, 44.1 kHz</span></li>
+                  <li className="flex items-center gap-2 text-xs text-zinc-400"><Icon name="Headphones" size={12} className="text-green-400 shrink-0" /> Каналы: <span className="text-white font-medium">Stereo</span></li>
+                  <li className="flex items-center gap-2 text-xs text-zinc-400"><Icon name="Image" size={12} className="text-blue-400 shrink-0" /> Обложка: <span className="text-white font-medium">мин. 3000×3000 px, JPEG/PNG</span></li>
+                </ul>
+              </div>
               <div className="space-y-3">
                 <Input
                   value={trackTitle}
@@ -173,7 +196,13 @@ export default function Cabinet() {
                   placeholder="Название трека"
                   className="bg-black border-white/10 text-white placeholder:text-zinc-600"
                 />
-                <input ref={fileRef} type="file" accept="audio/*" className="text-zinc-400 text-sm" />
+                <input ref={fileRef} type="file" accept="audio/*" onChange={handleFileSelect} className="text-zinc-400 text-sm" />
+                {audioPreviewUrl && (
+                  <div className="bg-black border border-white/10 rounded-xl p-4">
+                    <p className="text-zinc-400 text-xs mb-2">Предпрослушивание:</p>
+                    <AudioWavePlayer src={audioPreviewUrl} fileName={selectedFileName} />
+                  </div>
+                )}
                 <Button onClick={handleUpload} disabled={uploading || !trackTitle.trim()} className="bg-white text-black hover:bg-zinc-200">
                   {uploading ? "Загружаю..." : "Загрузить"}
                 </Button>
@@ -367,6 +396,37 @@ export default function Cabinet() {
                     <p className="text-zinc-500 text-sm mt-1">Платформ</p>
                   </div>
                 </div>
+
+                {/* Визуальный бар-чарт по трекам */}
+                {(() => {
+                  const trackMap: Record<string, number> = {};
+                  stats.forEach(s => { trackMap[s.track_title] = (trackMap[s.track_title] || 0) + s.streams; });
+                  const sorted = Object.entries(trackMap).sort((a, b) => b[1] - a[1]);
+                  const maxVal = sorted[0]?.[1] || 1;
+                  const colors = ["bg-purple-500", "bg-blue-500", "bg-green-500", "bg-yellow-500", "bg-pink-500", "bg-orange-500"];
+                  return (
+                    <div className="bg-zinc-900 border border-white/10 rounded-xl p-5 mb-4">
+                      <p className="font-semibold text-sm mb-4">График по трекам</p>
+                      <div className="space-y-3">
+                        {sorted.slice(0, 8).map(([title, streams], i) => (
+                          <div key={title}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm text-zinc-300 truncate max-w-[60%]">{title}</span>
+                              <span className="text-xs text-zinc-400 font-medium">{streams.toLocaleString("ru")}</span>
+                            </div>
+                            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${colors[i % colors.length]} rounded-full transition-all duration-700`}
+                                style={{ width: `${Math.round((streams / maxVal) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="space-y-3">
                   {stats.map((s) => (
                     <div key={s.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4">
