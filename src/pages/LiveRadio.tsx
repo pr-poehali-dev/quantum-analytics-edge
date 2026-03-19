@@ -1,11 +1,6 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
 
-const TRACKS = [
-  { id: 1, title: "TomLuv — трек 1", artist: "TomLuv", albumId: null, trackId: null, yandexUrl: "https://music.yandex.ru/artist/15063070" },
-  { id: 2, title: "Tania Panova — трек 1", artist: "Tania Panova", albumId: null, trackId: null, yandexUrl: "https://music.yandex.ru/artist/14874912" },
-];
-
 const LABEL_URL = "https://music.yandex.ru/label/6178530";
 
 export default function LiveRadio() {
@@ -15,16 +10,58 @@ export default function LiveRadio() {
     {
       name: "TomLuv",
       role: "Артист лейбла",
-      yandexUrl: "https://music.yandex.ru/artist/15063070",
-      embedUrl: "https://music.yandex.ru/iframe/#artist/15063070",
+      yandexUrl: "https://music.yandex.ru/artist/17970337",
+      embedUrl: "https://music.yandex.ru/iframe/#artist/17970337",
       color: "from-purple-900/40 to-zinc-900",
     },
     {
-      name: "Tania Panova",
+      name: "Нэтшанэт",
       role: "Артист лейбла",
-      yandexUrl: "https://music.yandex.ru/artist/14874912",
-      embedUrl: "https://music.yandex.ru/iframe/#artist/14874912",
+      yandexUrl: "https://music.yandex.ru/artist/24577979",
+      embedUrl: "https://music.yandex.ru/iframe/#artist/24577979",
+      color: "from-blue-900/40 to-zinc-900",
+    },
+    {
+      name: "808 FAY",
+      role: "Артист лейбла",
+      yandexUrl: "https://music.yandex.ru/artist/25131782",
+      embedUrl: "https://music.yandex.ru/iframe/#artist/25131782",
+      color: "from-orange-900/40 to-zinc-900",
+    },
+    {
+      name: "VOINOVA",
+      role: "Артист лейбла",
+      yandexUrl: "https://music.yandex.ru/artist/11202759",
+      embedUrl: "https://music.yandex.ru/iframe/#artist/11202759",
       color: "from-rose-900/40 to-zinc-900",
+    },
+    {
+      name: "Lill Kiska",
+      role: "Артист лейбла",
+      yandexUrl: "https://music.yandex.ru/artist/23291999",
+      embedUrl: "https://music.yandex.ru/iframe/#artist/23291999",
+      color: "from-pink-900/40 to-zinc-900",
+    },
+    {
+      name: "Макс Чуев",
+      role: "Артист лейбла",
+      yandexUrl: "https://music.yandex.ru/artist/25536549",
+      embedUrl: "https://music.yandex.ru/iframe/#artist/25536549",
+      color: "from-green-900/40 to-zinc-900",
+    },
+    {
+      name: "MAMATANK",
+      role: "Артист лейбла",
+      yandexUrl: "https://music.yandex.ru/artist/22126498",
+      embedUrl: "https://music.yandex.ru/iframe/#artist/22126498",
+      color: "from-yellow-900/40 to-zinc-900",
+    },
+    {
+      name: "TBOU DRUG",
+      role: "Артист лейбла",
+      yandexUrl: "https://music.yandex.ru/artist/25067872",
+      embedUrl: "https://music.yandex.ru/iframe/#artist/25067872",
+      color: "from-indigo-900/40 to-zinc-900",
     },
   ];
 
