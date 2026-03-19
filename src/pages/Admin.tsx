@@ -17,6 +17,7 @@ interface Contract { id: number; title: string; contract_status: string; payment
 interface Message { id: number; sender_role: string; text: string; created_at: string; }
 interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; created_at: string; }
 interface Royalty { id: number; period: string; platform: string; track_title: string; amount: string; currency: string; notes: string | null; created_at: string; }
+interface DistRequest { id: number; platforms: string; message: string; status: string; lyrics: string | null; copyright: string | null; created_at: string; }
 
 const STATUS_LABELS: Record<string, string> = {
   uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён", deleted: "Удалён",
@@ -54,6 +55,7 @@ export default function Admin() {
   const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
   const [royalties, setRoyalties] = useState<Royalty[]>([]);
   const [royaltiesTotal, setRoyaltiesTotal] = useState(0);
+  const [distRequests, setDistRequests] = useState<DistRequest[]>([]);
   const [newRoyalty, setNewRoyalty] = useState({ period: "", platform: "", track_title: "", amount: "", currency: "RUB", notes: "" });
   const [addingRoyalty, setAddingRoyalty] = useState(false);
   const [newRelease, setNewRelease] = useState({ title: "", artist_name: "", upc: "", genre: "", release_date: "", notes: "", cover_url: "" });
@@ -92,6 +94,7 @@ export default function Admin() {
     api.statistics.list(selected.id).then((r) => setStats(r.statistics || []));
     api.releases.list(selected.id).then((r) => setReleases(r.releases || []));
     api.royalties.list(selected.id).then((r) => { setRoyalties(r.royalties || []); setRoyaltiesTotal(r.total || 0); });
+    api.distribution.list(selected.id).then((r) => setDistRequests(r.requests || []));
   }, [selected]);
 
   useEffect(() => {
@@ -561,6 +564,45 @@ export default function Admin() {
                     {addingRelease ? "Добавляю..." : "Добавить релиз"}
                   </Button>
                 </div>
+
+                {/* Заявки на дистрибьюцию */}
+                {distRequests.length > 0 && (
+                  <div className="bg-zinc-900 border border-blue-500/20 rounded-xl p-4 mb-4">
+                    <p className="font-semibold text-sm mb-3 text-blue-400">Заявки на дистрибьюцию ({distRequests.length})</p>
+                    <div className="space-y-3">
+                      {distRequests.map((req) => (
+                        <div key={req.id} className="bg-black/40 rounded-lg p-3 border border-white/5">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-zinc-300 font-medium">{req.platforms}</span>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={req.status}
+                                onChange={async (e) => {
+                                  await api.distribution.updateStatus(req.id, e.target.value);
+                                  setDistRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: e.target.value } : r));
+                                }}
+                                className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer ${STATUS_COLORS[req.status] || "bg-zinc-700 text-zinc-200"}`}
+                              >
+                                {["new", "processing", "done", "cancelled"].map((s) => (
+                                  <option key={s} value={s} className="bg-zinc-900 text-white">{STATUS_LABELS[s] || s}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          {req.copyright && <p className="text-zinc-500 text-xs">© {req.copyright}</p>}
+                          {req.message && <p className="text-zinc-400 text-xs mt-1">{req.message}</p>}
+                          {req.lyrics && (
+                            <details className="mt-2">
+                              <summary className="text-zinc-500 text-xs cursor-pointer hover:text-zinc-300">Текст трека</summary>
+                              <pre className="text-zinc-400 text-xs mt-1 whitespace-pre-wrap font-sans">{req.lyrics}</pre>
+                            </details>
+                          )}
+                          <p className="text-zinc-600 text-xs mt-1">{new Date(req.created_at).toLocaleDateString("ru")}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {releases.length === 0 && <p className="text-zinc-500 text-sm">Релизов нет</p>}
                 <div className="space-y-3">

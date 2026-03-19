@@ -54,6 +54,10 @@ export default function Cabinet() {
   const [payingId, setPayingId] = useState<number | null>(null);
   const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
+  const [changePwValue, setChangePwValue] = useState("");
+  const [changingPw, setChangingPw] = useState(false);
+  const [changePwMsg, setChangePwMsg] = useState("");
+  const [showChangePw, setShowChangePw] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
@@ -67,10 +71,10 @@ export default function Cabinet() {
     api.tracks.list().then((r) => setTracks(r.tracks || []));
     api.chat.messages().then((r) => setMessages(r.messages || []));
     api.admin.contracts().then((r) => setContracts(r.contracts || []));
-    api.statistics.list().then((r) => setStats(r.statistics || []));
+    api.statistics.list(user.id).then((r) => setStats(r.statistics || []));
     api.releases.myReleases().then((r) => setReleases(r.releases || []));
     api.distribution.myRequests().then((r) => setDistRequests(r.requests || []));
-    api.royalties.list().then((r) => { setRoyalties(r.royalties || []); setRoyaltiesTotal(r.total || 0); });
+    api.royalties.list(user.id).then((r) => { setRoyalties(r.royalties || []); setRoyaltiesTotal(r.total || 0); });
   }, [user]);
 
   useEffect(() => {
@@ -109,6 +113,21 @@ export default function Cabinet() {
     const res = await api.payment.create(contractId, window.location.origin + "/cabinet");
     setPayingId(null);
     if (res.payment_url) window.location.href = res.payment_url;
+  };
+
+  const handleChangePassword = async () => {
+    if (!changePwValue.trim() || changePwValue.length < 6) return;
+    setChangingPw(true);
+    setChangePwMsg("");
+    const res = await api.auth.changePassword(changePwValue);
+    setChangingPw(false);
+    if (res.ok) {
+      setChangePwMsg("Пароль успешно изменён");
+      setChangePwValue("");
+      setTimeout(() => { setShowChangePw(false); setChangePwMsg(""); }, 2000);
+    } else {
+      setChangePwMsg(res.error || "Ошибка смены пароля");
+    }
   };
 
   const handleSend = async () => {
@@ -157,11 +176,37 @@ export default function Cabinet() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-zinc-400 text-sm">{user.artist_name}</span>
+          <button onClick={() => setShowChangePw((v) => !v)} className="text-zinc-500 hover:text-white text-xs transition-colors">
+            Сменить пароль
+          </button>
           <Button variant="ghost" size="sm" onClick={() => { logout(); navigate("/"); }} className="text-zinc-400 hover:text-white">
             Выйти
           </Button>
         </div>
       </header>
+
+      {showChangePw && (
+        <div className="border-b border-white/10 bg-zinc-950 px-6 py-3">
+          <div className="max-w-4xl mx-auto flex items-center gap-3">
+            <span className="text-zinc-400 text-sm shrink-0">Новый пароль:</span>
+            <Input
+              type="password"
+              value={changePwValue}
+              onChange={(e) => { setChangePwValue(e.target.value); setChangePwMsg(""); }}
+              placeholder="Минимум 6 символов"
+              className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm max-w-xs"
+              onKeyDown={(e) => e.key === "Enter" && handleChangePassword()}
+            />
+            <Button onClick={handleChangePassword} disabled={changingPw || changePwValue.length < 6} size="sm" className="bg-white text-black hover:bg-zinc-200 shrink-0">
+              {changingPw ? "..." : "Изменить"}
+            </Button>
+            <button onClick={() => { setShowChangePw(false); setChangePwMsg(""); setChangePwValue(""); }} className="text-zinc-500 hover:text-white">
+              <Icon name="X" size={16} />
+            </button>
+            {changePwMsg && <p className={`text-xs ${changePwMsg.includes("успешно") ? "text-green-400" : "text-red-400"}`}>{changePwMsg}</p>}
+          </div>
+        </div>
+      )}
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex gap-1 mb-8 bg-zinc-900 rounded-xl p-1 overflow-x-auto">
