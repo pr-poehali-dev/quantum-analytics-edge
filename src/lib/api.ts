@@ -27,6 +27,7 @@ export const api = {
     me: () => fetch(`${AUTH}?action=me`, { headers: headers() }).then(r => r.json()),
     logout: () => fetch(`${AUTH}?action=logout`, { method: "POST", headers: headers() }).then(r => r.json()),
     forgotPassword: (email: string) => fetch(`${AUTH}?action=forgot-password`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) }).then(r => r.json()),
+    changePassword: (newPassword: string) => fetch(`${AUTH}?action=change-password`, { method: "POST", headers: headers(), body: JSON.stringify({ new_password: newPassword }) }).then(r => r.json()),
   },
   tracks: {
     list: (userId?: number) => fetch(`${TRACKS}${userId ? `?user_id=${userId}` : ""}`, { headers: headers() }).then(r => r.json()),
@@ -96,8 +97,5 @@ export const api = {
     like: (artistName: string, sessionId: string) => post("radio-like", { artist_name: artistName, session_id: sessionId }, false),
     unlike: (artistName: string, sessionId: string) => post("radio-unlike", { artist_name: artistName, session_id: sessionId }, false),
     top: (sessionId: string) => get("radio-top", `&session_id=${sessionId}`),
-  },
-  auth: {
-    changePassword: (newPassword: string) => fetch(`${AUTH}?action=change-password`, { method: "POST", headers: headers(), body: JSON.stringify({ new_password: newPassword }) }).then(r => r.json()),
   },
 };
