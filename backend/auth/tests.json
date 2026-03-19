@@ -31,6 +31,24 @@
       "expectedStatus": 401,
       "expectedBody": {"error": "Не авторизован"},
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Forgot password empty email",
+      "method": "POST",
+      "path": "/?action=forgot-password",
+      "body": {},
+      "expectedStatus": 400,
+      "expectedBody": {"error": "Введите email"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Forgot password unknown email — returns ok",
+      "method": "POST",
+      "path": "/?action=forgot-password",
+      "body": {"email": "notexist@test.com"},
+      "expectedStatus": 200,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
     }
   ]
 }

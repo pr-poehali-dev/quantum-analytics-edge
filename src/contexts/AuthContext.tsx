@@ -24,18 +24,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const token = localStorage.getItem("ks_token");
+    const cachedUser = localStorage.getItem("ks_user");
     if (!token) { setLoading(false); return; }
 
+    if (cachedUser) {
+      try { setUser(JSON.parse(cachedUser)); } catch { /* ignore */ }
+    }
+
     const timeout = setTimeout(() => {
-      localStorage.removeItem("ks_token");
       setLoading(false);
-    }, 5000);
+    }, 6000);
 
     api.auth.me().then((res) => {
-      if (res.user) setUser(res.user);
-      else localStorage.removeItem("ks_token");
+      if (res.user) {
+        setUser(res.user);
+        localStorage.setItem("ks_user", JSON.stringify(res.user));
+      } else {
+        localStorage.removeItem("ks_token");
+        localStorage.removeItem("ks_user");
+        setUser(null);
+      }
     }).catch(() => {
-      localStorage.removeItem("ks_token");
+      // Сеть недоступна — оставляем кешированную сессию
     }).finally(() => {
       clearTimeout(timeout);
       setLoading(false);
@@ -48,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.error) return { error: res.error };
       if (!res.token) return { error: "Нет ответа от сервера, попробуй позже" };
       localStorage.setItem("ks_token", res.token);
+      localStorage.setItem("ks_user", JSON.stringify(res.user));
       setUser(res.user);
       return { role: res.user?.role };
     } catch {
@@ -61,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.error) return { error: res.error };
       if (!res.token) return { error: "Нет ответа от сервера, попробуй позже" };
       localStorage.setItem("ks_token", res.token);
+      localStorage.setItem("ks_user", JSON.stringify(res.user));
       setUser(res.user);
       return { role: res.user?.role };
     } catch {
@@ -71,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     api.auth.logout();
     localStorage.removeItem("ks_token");
+    localStorage.removeItem("ks_user");
     setUser(null);
   };
 

@@ -1,13 +1,16 @@
 """
-Авторизация артистов: регистрация, вход, выход, проверка сессии.
-Действие передаётся через queryStringParameters: ?action=login|register|me|logout
+Авторизация артистов: регистрация, вход, выход, проверка сессии, восстановление пароля.
+Действие передаётся через queryStringParameters: ?action=login|register|me|logout|forgot-password
 """
 import json
 import os
 import hashlib
 import secrets
 import traceback
+import smtplib
 import psycopg2
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
 CORS_HEADERS = {
@@ -15,6 +18,10 @@ CORS_HEADERS = {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-Session-Token',
 }
+
+SMTP_HOST = 'smtp.mail.ru'
+SMTP_PORT = 465
+SMTP_USER = 'kalashnikov.sound@mail.ru'
 
 def get_conn():
     return psycopg2.connect(os.environ['DATABASE_URL'])
@@ -24,6 +31,28 @@ def hash_password(password: str) -> str:
 
 def make_token() -> str:
     return secrets.token_hex(32)
+
+def make_temp_password() -> str:
+    alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'
+    return ''.join(secrets.choice(alphabet) for _ in range(10))
+
+def send_email(to_email: str, subject: str, html_body: str) -> bool:
+    smtp_pass = os.environ.get('SMTP_PASSWORD', '')
+    if not smtp_pass:
+        return False
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f'KALASHNIKOV SOUND <{SMTP_USER}>'
+        msg['To'] = to_email
+        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as srv:
+            srv.login(SMTP_USER, smtp_pass)
+            srv.sendmail(SMTP_USER, to_email, msg.as_string())
+        return True
+    except Exception as e:
+        print(f'[EMAIL ERROR] {e}')
+        return False
 
 def ok(data: dict) -> dict:
     return {'statusCode': 200, 'headers': {**CORS_HEADERS, 'Content-Type': 'application/json'}, 'body': json.dumps(data, ensure_ascii=False)}
@@ -154,6 +183,41 @@ def handler(event: dict, context) -> dict:
             if token:
                 cur.execute(f'UPDATE {schema}.sessions SET expires_at = NOW() WHERE token = %s', (token,))
                 conn.commit()
+            return ok({'ok': True})
+
+        # Восстановление пароля
+        if action == 'forgot-password' and method == 'POST':
+            email = str(body.get('email', '')).strip().lower()
+            if not email:
+                return err(400, 'Введите email')
+
+            cur.execute(f'SELECT id, artist_name FROM {schema}.users WHERE email = %s AND role = %s', (email, 'artist'))
+            user = cur.fetchone()
+            if not user:
+                return ok({'ok': True})
+
+            temp_pw = make_temp_password()
+            pw_hash = hash_password(temp_pw)
+            cur.execute(f'UPDATE {schema}.users SET password_hash = %s WHERE id = %s', (pw_hash, user[0]))
+            conn.commit()
+
+            html = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #111; color: #fff; padding: 32px; border-radius: 12px;">
+              <h2 style="color: #fff; margin-bottom: 8px;">KALASHNIKOV SOUND</h2>
+              <p style="color: #aaa; margin-bottom: 24px;">Восстановление пароля</p>
+              <p>Привет, <strong>{user[1]}</strong>!</p>
+              <p style="color: #ccc;">Твой временный пароль для входа:</p>
+              <div style="background: #222; border-radius: 8px; padding: 16px 24px; margin: 16px 0; font-size: 22px; font-weight: bold; letter-spacing: 2px; color: #fff; text-align: center;">
+                {temp_pw}
+              </div>
+              <p style="color: #aaa; font-size: 13px;">После входа рекомендуем сменить пароль в настройках.</p>
+              <hr style="border-color: #333; margin: 24px 0;">
+              <p style="color: #555; font-size: 12px;">Если ты не запрашивал восстановление — просто проигнорируй это письмо.</p>
+            </div>
+            """
+            sent = send_email(email, 'Восстановление пароля — KALASHNIKOV SOUND', html)
+            if not sent:
+                return err(500, 'Не удалось отправить письмо. Обратитесь к администратору: kalashnikov.sound@mail.ru')
             return ok({'ok': True})
 
         return err(404, f'Unknown action: {action}')
