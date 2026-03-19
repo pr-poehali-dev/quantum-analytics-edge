@@ -49,12 +49,9 @@ const Header = () => {
         >
           <ul className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8 p-4 md:p-0">
             <li>
-              <button
-                onClick={() => scrollToSection("licenses")}
-                className="text-white hover:text-purple-400 transition-colors"
-              >
+              <a href="/services" className="text-white hover:text-purple-400 transition-colors">
                 Услуги
-              </button>
+              </a>
             </li>
             <li>
               <button

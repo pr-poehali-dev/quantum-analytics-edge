@@ -6,34 +6,25 @@ import json
 import os
 import uuid
 import hashlib
-import smtplib
+import base64
+import boto3
 import psycopg2
 import requests
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from datetime import datetime
 from requests.auth import HTTPBasicAuth
 
-SMTP_HOST = 'smtp.mail.ru'
-SMTP_PORT = 465
-SMTP_USER = 'kalashnikov.sound@mail.ru'
-ADMIN_EMAIL = 'kalashnikov.sound@mail.ru'
+TELEGRAM_CHAT_ID = "6162140923"
 
-def send_email(to_email: str, subject: str, html_body: str) -> bool:
-    smtp_pass = os.environ.get('SMTP_PASSWORD', '')
-    if not smtp_pass:
-        return False
+def send_telegram(token: str, message: str) -> bool:
     try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = f'KALASHNIKOV SOUND <{SMTP_USER}>'
-        msg['To'] = to_email
-        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as srv:
-            srv.login(SMTP_USER, smtp_pass)
-            srv.sendmail(SMTP_USER, to_email, msg.as_string())
-        return True
+        resp = requests.post(
+            f'https://api.telegram.org/bot{token}/sendMessage',
+            json={'chat_id': TELEGRAM_CHAT_ID, 'text': message, 'parse_mode': 'Markdown'},
+            timeout=10,
+        )
+        return resp.ok
     except Exception as e:
-        print(f'[EMAIL ERROR] {e}')
+        print(f'[TG ERROR] {e}')
         return False
 
 PACKAGES = {
@@ -385,6 +376,33 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         return ok({'ok': True})
 
+    # Загрузка обложки релиза в S3 (admin)
+    if action == 'upload-cover' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        file_data = body.get('file_data', '')
+        file_name = body.get('file_name', 'cover.jpg')
+        release_id_cover = body.get('release_id')
+        if not file_data:
+            return err(400, 'Нет файла')
+        file_bytes = base64.b64decode(file_data)
+        ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'jpg'
+        content_type = 'image/jpeg' if ext in ('jpg', 'jpeg') else f'image/{ext}'
+        key = f'covers/{datetime.now().strftime("%Y%m%d%H%M%S")}_{file_name}'
+        s3 = boto3.client('s3',
+            endpoint_url='https://bucket.poehali.dev',
+            aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+            aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+        )
+        s3.put_object(Bucket='files', Key=key, Body=file_bytes, ContentType=content_type)
+        cover_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+        if release_id_cover:
+            cur.execute(f"UPDATE {schema}.releases SET cover_url = %s WHERE id = %s", (cover_url, release_id_cover))
+            conn.commit()
+        return ok({'cover_url': cover_url})
+
     # Заявка на дистрибьюцию (артист — POST)
     if action == 'distribution' and method == 'POST':
         u = get_user(cur, token, schema)
@@ -401,24 +419,18 @@ def handler(event: dict, context) -> dict:
         artist_name = uinfo[1] if uinfo else 'Неизвестный'
         platforms = body.get('platforms', '')
         message = body.get('message', '')
-        release_id = body.get('release_id') or ''
 
-        html = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #111; color: #fff; padding: 32px; border-radius: 12px;">
-          <h2 style="color: #fff; margin-bottom: 4px;">KALASHNIKOV SOUND</h2>
-          <p style="color: #aaa; margin-bottom: 24px; font-size: 14px;">Новая заявка на дистрибьюцию</p>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="color: #888; padding: 6px 0; width: 140px;">Артист:</td><td style="color: #fff; padding: 6px 0;"><strong>{artist_name}</strong></td></tr>
-            <tr><td style="color: #888; padding: 6px 0;">Email артиста:</td><td style="color: #fff; padding: 6px 0;">{artist_email}</td></tr>
-            <tr><td style="color: #888; padding: 6px 0;">Платформы:</td><td style="color: #fff; padding: 6px 0;">{platforms or 'не указаны'}</td></tr>
-            <tr><td style="color: #888; padding: 6px 0;">Релиз ID:</td><td style="color: #fff; padding: 6px 0;">{release_id or 'не привязан'}</td></tr>
-            <tr><td style="color: #888; padding: 6px 0; vertical-align: top;">Сообщение:</td><td style="color: #fff; padding: 6px 0;">{message or '—'}</td></tr>
-          </table>
-          <hr style="border-color: #333; margin: 24px 0;">
-          <p style="color: #555; font-size: 12px;">Заявка #{row[0]} от {str(row[1])[:16]}</p>
-        </div>
-        """
-        send_email(ADMIN_EMAIL, f'Заявка на дистрибьюцию — {artist_name}', html)
+        tg_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+        if tg_token:
+            tg_msg = (
+                f"🎵 *Новая заявка на дистрибьюцию*\n\n"
+                f"*Артист:* {artist_name}\n"
+                f"*Email:* {artist_email}\n"
+                f"*Платформы:* {platforms or 'не указаны'}\n"
+                f"*Сообщение:* {message or '—'}\n"
+                f"_Заявка #{row[0]}_"
+            )
+            send_telegram(tg_token, tg_msg)
 
         return ok({'request': {'id': row[0], 'status': 'new', 'platforms': platforms, 'message': message, 'created_at': str(row[1])}})
 

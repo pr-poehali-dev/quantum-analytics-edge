@@ -74,6 +74,7 @@ export const api = {
     create: (data: object) => post("releases", data),
     update: (data: object) => put("update-release", data),
     myReleases: () => get("releases"),
+    uploadCover: (data: object) => post("upload-cover", data),
   },
   distribution: {
     submit: (data: object) => post("distribution", data),

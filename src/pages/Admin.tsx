@@ -53,6 +53,9 @@ export default function Admin() {
   const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
   const [newRelease, setNewRelease] = useState({ title: "", artist_name: "", upc: "", genre: "", release_date: "", notes: "", cover_url: "" });
   const [addingRelease, setAddingRelease] = useState(false);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
   const [newUser, setNewUser] = useState({ email: "", artist_name: "", password: "" });
   const [creatingUser, setCreatingUser] = useState(false);
   const [userError, setUserError] = useState("");
@@ -141,15 +144,34 @@ export default function Admin() {
     setCreatingContract(false);
   };
 
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setCoverPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleAddRelease = async () => {
     if (!selected || !newRelease.title.trim()) return;
     setAddingRelease(true);
+    let cover_url: string | undefined = newRelease.cover_url || undefined;
+    if (coverFile) {
+      const reader = new FileReader();
+      const b64 = await new Promise<string>((resolve) => {
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.readAsDataURL(coverFile);
+      });
+      const upRes = await api.releases.uploadCover({ file_data: b64, file_name: coverFile.name });
+      if (upRes.cover_url) cover_url = upRes.cover_url;
+    }
     const res = await api.releases.create({
       user_id: selected.id,
       title: newRelease.title,
       artist_name: newRelease.artist_name || selected.artist_name,
       upc: newRelease.upc || undefined,
-      cover_url: newRelease.cover_url || undefined,
+      cover_url,
       genre: newRelease.genre || undefined,
       release_date: newRelease.release_date || undefined,
       notes: newRelease.notes || undefined,
@@ -157,6 +179,9 @@ export default function Admin() {
     });
     if (res.release) setReleases((prev) => [res.release, ...prev]);
     setNewRelease({ title: "", artist_name: "", upc: "", genre: "", release_date: "", notes: "", cover_url: "" });
+    setCoverFile(null);
+    setCoverPreview(null);
+    if (coverRef.current) coverRef.current.value = "";
     setAddingRelease(false);
   };
 
@@ -419,7 +444,19 @@ export default function Admin() {
                     <Input value={newRelease.upc} onChange={(e) => setNewRelease({ ...newRelease, upc: e.target.value })} placeholder="UPC код" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
                     <Input value={newRelease.genre} onChange={(e) => setNewRelease({ ...newRelease, genre: e.target.value })} placeholder="Жанр" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
                     <Input value={newRelease.release_date} onChange={(e) => setNewRelease({ ...newRelease, release_date: e.target.value })} placeholder="Дата выхода" type="date" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
-                    <Input value={newRelease.cover_url} onChange={(e) => setNewRelease({ ...newRelease, cover_url: e.target.value })} placeholder="Ссылка на обложку" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <div className="col-span-1">
+                      <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverChange} className="hidden" id="cover-upload" />
+                      <label htmlFor="cover-upload" className="flex items-center gap-2 cursor-pointer bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-zinc-400 hover:text-white hover:border-white/30 transition-colors">
+                        <Icon name="ImagePlus" size={14} />
+                        {coverFile ? coverFile.name.slice(0, 14) + "..." : "Обложка"}
+                      </label>
+                    </div>
+                    {coverPreview && (
+                      <div className="col-span-2 flex items-center gap-3">
+                        <img src={coverPreview} alt="preview" className="w-14 h-14 rounded-lg object-cover border border-white/10" />
+                        <button onClick={() => { setCoverFile(null); setCoverPreview(null); if (coverRef.current) coverRef.current.value = ""; }} className="text-zinc-500 hover:text-red-400 text-xs">Удалить</button>
+                      </div>
+                    )}
                     <Input value={newRelease.notes} onChange={(e) => setNewRelease({ ...newRelease, notes: e.target.value })} placeholder="Заметки" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm col-span-2" />
                   </div>
                   <Button onClick={handleAddRelease} disabled={addingRelease || !newRelease.title.trim()} size="sm" className="bg-white text-black hover:bg-zinc-200">

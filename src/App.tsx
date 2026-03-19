@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Cabinet from "./pages/Cabinet";
 import Admin from "./pages/Admin";
 import LiveRadio from "./pages/LiveRadio";
+import Services from "./pages/Services";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { api } from "./lib/api";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/cabinet" element={<Cabinet />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/radio" element={<LiveRadio />} />
+            <Route path="/services" element={<Services />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
