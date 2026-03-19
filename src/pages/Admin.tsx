@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 
-type Tab = "materials" | "releases" | "stats" | "chat";
+type Tab = "materials" | "releases" | "stats" | "royalties" | "chat";
 type SideTab = "artists" | "create-user";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
@@ -16,6 +16,7 @@ interface Track { id: number; title: string; file_name: string; file_url: string
 interface Contract { id: number; title: string; contract_status: string; payment_status: string; amount: string; notes: string; }
 interface Message { id: number; sender_role: string; text: string; created_at: string; }
 interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; created_at: string; }
+interface Royalty { id: number; period: string; platform: string; track_title: string; amount: string; currency: string; notes: string | null; created_at: string; }
 
 const STATUS_LABELS: Record<string, string> = {
   uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён",
@@ -51,6 +52,10 @@ export default function Admin() {
   const [newStat, setNewStat] = useState({ platform: "", track_title: "", streams: "", period: "", notes: "" });
   const [addingStat, setAddingStat] = useState(false);
   const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
+  const [royalties, setRoyalties] = useState<Royalty[]>([]);
+  const [royaltiesTotal, setRoyaltiesTotal] = useState(0);
+  const [newRoyalty, setNewRoyalty] = useState({ period: "", platform: "", track_title: "", amount: "", currency: "RUB", notes: "" });
+  const [addingRoyalty, setAddingRoyalty] = useState(false);
   const [newRelease, setNewRelease] = useState({ title: "", artist_name: "", upc: "", genre: "", release_date: "", notes: "", cover_url: "" });
   const [addingRelease, setAddingRelease] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -80,6 +85,7 @@ export default function Admin() {
     api.admin.artistMessages(selected.id).then((r) => setMessages(r.messages || []));
     api.statistics.list(selected.id).then((r) => setStats(r.statistics || []));
     api.releases.list(selected.id).then((r) => setReleases(r.releases || []));
+    api.royalties.list(selected.id).then((r) => { setRoyalties(r.royalties || []); setRoyaltiesTotal(r.total || 0); });
   }, [selected]);
 
   useEffect(() => {
@@ -130,6 +136,32 @@ export default function Admin() {
   const handleDeleteStat = async (id: number) => {
     await api.statistics.delete(id);
     setStats((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleAddRoyalty = async () => {
+    if (!selected || !newRoyalty.period.trim() || !newRoyalty.platform.trim() || !newRoyalty.track_title.trim() || !newRoyalty.amount) return;
+    setAddingRoyalty(true);
+    const res = await api.royalties.create({
+      user_id: selected.id,
+      period: newRoyalty.period,
+      platform: newRoyalty.platform,
+      track_title: newRoyalty.track_title,
+      amount: Number(newRoyalty.amount),
+      currency: newRoyalty.currency || "RUB",
+      notes: newRoyalty.notes || undefined,
+    });
+    if (res.royalty) {
+      setRoyalties((prev) => [res.royalty, ...prev]);
+      setRoyaltiesTotal((prev) => prev + Number(newRoyalty.amount));
+    }
+    setNewRoyalty({ period: "", platform: "", track_title: "", amount: "", currency: "RUB", notes: "" });
+    setAddingRoyalty(false);
+  };
+
+  const handleDeleteRoyalty = async (id: number, amount: string) => {
+    await api.royalties.delete(id);
+    setRoyalties((prev) => prev.filter((r) => r.id !== id));
+    setRoyaltiesTotal((prev) => Math.max(0, prev - Number(amount)));
   };
 
   const handleCreateContract = async () => {
@@ -352,14 +384,14 @@ export default function Admin() {
               </div>
             </div>
 
-            <div className="flex gap-1 mb-6 bg-zinc-900 rounded-xl p-1 max-w-xl overflow-x-auto">
-              {(["materials", "releases", "stats", "chat"] as Tab[]).map((t) => (
+            <div className="flex gap-1 mb-6 bg-zinc-900 rounded-xl p-1 max-w-2xl overflow-x-auto">
+              {(["materials", "releases", "stats", "royalties", "chat"] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
                   className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
                 >
-                  {t === "materials" ? "Материалы" : t === "releases" ? "Релизы" : t === "stats" ? "Статистика" : "Чат"}
+                  {t === "materials" ? "Материалы" : t === "releases" ? "Релизы" : t === "stats" ? "Статистика" : t === "royalties" ? "Роялти" : "Чат"}
                 </button>
               ))}
             </div>
@@ -541,6 +573,54 @@ export default function Admin() {
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="font-bold text-white">{Number(s.streams).toLocaleString("ru")}</span>
                         <button onClick={() => handleDeleteStat(s.id)} className="text-zinc-600 hover:text-red-400 transition-colors">
+                          <Icon name="Trash2" size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Вкладка Роялти */}
+            {tab === "royalties" && (
+              <div className="space-y-4 max-w-2xl">
+                <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 space-y-2">
+                  <p className="font-semibold text-sm mb-1">Добавить начисление роялти</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input value={newRoyalty.track_title} onChange={(e) => setNewRoyalty({ ...newRoyalty, track_title: e.target.value })} placeholder="Название трека" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm col-span-2" />
+                    <Input value={newRoyalty.platform} onChange={(e) => setNewRoyalty({ ...newRoyalty, platform: e.target.value })} placeholder="Платформа (Spotify, VK...)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newRoyalty.period} onChange={(e) => setNewRoyalty({ ...newRoyalty, period: e.target.value })} placeholder="Период (Март 2026)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <Input value={newRoyalty.amount} onChange={(e) => setNewRoyalty({ ...newRoyalty, amount: e.target.value })} placeholder="Сумма (₽)" type="number" step="0.01" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm" />
+                    <select value={newRoyalty.currency} onChange={(e) => setNewRoyalty({ ...newRoyalty, currency: e.target.value })} className="bg-black border border-white/10 text-white rounded-md px-3 py-2 text-sm">
+                      <option value="RUB">₽ RUB</option>
+                      <option value="USD">$ USD</option>
+                      <option value="EUR">€ EUR</option>
+                    </select>
+                    <Input value={newRoyalty.notes} onChange={(e) => setNewRoyalty({ ...newRoyalty, notes: e.target.value })} placeholder="Примечание (необязательно)" className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm col-span-2" />
+                  </div>
+                  <Button onClick={handleAddRoyalty} disabled={addingRoyalty || !newRoyalty.track_title.trim() || !newRoyalty.platform.trim() || !newRoyalty.period.trim() || !newRoyalty.amount} size="sm" className="bg-white text-black hover:bg-zinc-200">
+                    {addingRoyalty ? "Добавляю..." : "Добавить"}
+                  </Button>
+                </div>
+                {royalties.length > 0 && (
+                  <div className="bg-zinc-900 border border-green-500/20 rounded-xl p-4 flex items-center justify-between">
+                    <p className="text-zinc-400 text-sm">Итого начислено</p>
+                    <p className="text-2xl font-bold text-green-400">{royaltiesTotal.toLocaleString("ru", { minimumFractionDigits: 2 })} ₽</p>
+                  </div>
+                )}
+                {royalties.length === 0 && <p className="text-zinc-500 text-sm">Роялти не добавлены</p>}
+                <div className="space-y-2">
+                  {royalties.map((r) => (
+                    <div key={r.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{r.track_title}</p>
+                        <p className="text-zinc-500 text-xs">{r.platform} · {r.period}</p>
+                        {r.notes && <p className="text-zinc-600 text-xs mt-0.5">{r.notes}</p>}
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-bold text-green-400">+{Number(r.amount).toLocaleString("ru", { minimumFractionDigits: 2 })} {r.currency}</span>
+                        <button onClick={() => handleDeleteRoyalty(r.id, r.amount)} className="text-zinc-600 hover:text-red-400 transition-colors">
                           <Icon name="Trash2" size={14} />
                         </button>
                       </div>

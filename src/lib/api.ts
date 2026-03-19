@@ -82,6 +82,11 @@ export const api = {
     list: (userId?: number) => get("distribution", userId ? `&user_id=${userId}` : ""),
     updateStatus: (id: number, status: string) => put("update-distribution", { id, status }),
   },
+  royalties: {
+    list: (userId?: number) => get("royalties", userId ? `&user_id=${userId}` : ""),
+    create: (data: object) => post("royalties", data),
+    delete: (id: number) => post("del-royalty", { id }),
+  },
   users: {
     create: (data: object) => post("create-user", data),
   },

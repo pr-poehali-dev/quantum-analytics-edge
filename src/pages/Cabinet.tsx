@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 
-type Tab = "tracks" | "releases" | "contracts" | "stats" | "chat";
+type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 
 interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; }
-interface DistRequest { id: number; release_id: number | null; platforms: string; message: string; status: string; created_at: string; }
+interface DistRequest { id: number; release_id: number | null; platforms: string; message: string; lyrics: string | null; copyright: string | null; status: string; created_at: string; }
+interface Royalty { id: number; period: string; platform: string; track_title: string; amount: string; currency: string; notes: string | null; created_at: string; }
 
 const STATUS_LABELS: Record<string, string> = {
   uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён",
@@ -39,7 +40,9 @@ export default function Cabinet() {
   const [stats, setStats] = useState<Stat[]>([]);
   const [releases, setReleases] = useState<Release[]>([]);
   const [distRequests, setDistRequests] = useState<DistRequest[]>([]);
-  const [distForm, setDistForm] = useState({ platforms: "", message: "", release_id: "" });
+  const [royalties, setRoyalties] = useState<Royalty[]>([]);
+  const [royaltiesTotal, setRoyaltiesTotal] = useState(0);
+  const [distForm, setDistForm] = useState({ platforms: "", message: "", release_id: "", lyrics: "", copyright: "" });
   const [submittingDist, setSubmittingDist] = useState(false);
   const [distError, setDistError] = useState("");
   const [distSuccess, setDistSuccess] = useState("");
@@ -64,6 +67,7 @@ export default function Cabinet() {
     api.statistics.list().then((r) => setStats(r.statistics || []));
     api.releases.myReleases().then((r) => setReleases(r.releases || []));
     api.distribution.myRequests().then((r) => setDistRequests(r.requests || []));
+    api.royalties.list().then((r) => { setRoyalties(r.royalties || []); setRoyaltiesTotal(r.total || 0); });
   }, [user]);
 
   useEffect(() => {
@@ -110,12 +114,14 @@ export default function Cabinet() {
     const res = await api.distribution.submit({
       platforms: distForm.platforms,
       message: distForm.message,
+      lyrics: distForm.lyrics || undefined,
+      copyright: distForm.copyright || undefined,
       release_id: distForm.release_id ? Number(distForm.release_id) : undefined,
     });
     if (res.request) {
       setDistRequests((prev) => [res.request, ...prev]);
       setDistSuccess("Заявка отправлена! Мы свяжемся с вами.");
-      setDistForm({ platforms: "", message: "", release_id: "" });
+      setDistForm({ platforms: "", message: "", release_id: "", lyrics: "", copyright: "" });
     } else {
       setDistError(res.error || "Ошибка отправки заявки");
     }
@@ -145,13 +151,13 @@ export default function Cabinet() {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex gap-1 mb-8 bg-zinc-900 rounded-xl p-1 overflow-x-auto">
-          {(["tracks", "releases", "contracts", "stats", "chat"] as Tab[]).map((t) => (
+          {(["tracks", "releases", "contracts", "stats", "royalties", "chat"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 py-2.5 px-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
             >
-              {t === "tracks" ? "Треки" : t === "releases" ? "Релизы" : t === "contracts" ? "Договоры" : t === "stats" ? "Статистика" : "Чат"}
+              {t === "tracks" ? "Треки" : t === "releases" ? "Релизы" : t === "contracts" ? "Договоры" : t === "stats" ? "Статистика" : t === "royalties" ? "Роялти" : "Чат"}
             </button>
           ))}
         </div>
@@ -254,11 +260,24 @@ export default function Cabinet() {
                   placeholder="Платформы: Spotify, Apple Music, VK, YouTube..."
                   className="bg-black border-white/10 text-white placeholder:text-zinc-600"
                 />
+                <Input
+                  value={distForm.copyright}
+                  onChange={(e) => setDistForm({ ...distForm, copyright: e.target.value })}
+                  placeholder="Копирайт: © 2025 KALASHNIKOV SOUND / Имя артиста"
+                  className="bg-black border-white/10 text-white placeholder:text-zinc-600"
+                />
+                <textarea
+                  value={distForm.lyrics}
+                  onChange={(e) => setDistForm({ ...distForm, lyrics: e.target.value })}
+                  placeholder="Текст трека (необязательно)..."
+                  rows={5}
+                  className="w-full bg-black border border-white/10 text-white placeholder:text-zinc-600 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-white/30"
+                />
                 <textarea
                   value={distForm.message}
                   onChange={(e) => setDistForm({ ...distForm, message: e.target.value })}
-                  placeholder="Дополнительные пожелания или информация о треке..."
-                  rows={3}
+                  placeholder="Дополнительные пожелания..."
+                  rows={2}
                   className="w-full bg-black border border-white/10 text-white placeholder:text-zinc-600 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-white/30"
                 />
                 {distError && <p className="text-red-400 text-sm">{distError}</p>}
@@ -362,6 +381,53 @@ export default function Cabinet() {
                       <div className="text-right shrink-0">
                         <p className="text-xl font-bold text-white">{Number(s.streams).toLocaleString("ru")}</p>
                         <p className="text-zinc-500 text-xs">прослушиваний</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === "royalties" && (
+          <div className="space-y-4">
+            {royalties.length === 0 ? (
+              <div className="text-center py-16">
+                <Icon name="DollarSign" size={48} className="text-zinc-700 mx-auto mb-4" />
+                <p className="text-zinc-500">Роялти пока не начислены</p>
+                <p className="text-zinc-600 text-sm mt-1">Лейбл добавит данные после выхода релизов</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+                  <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 text-center sm:col-span-1">
+                    <p className="text-zinc-500 text-sm mb-1">Всего начислено</p>
+                    <p className="text-3xl font-bold text-green-400">{royaltiesTotal.toLocaleString("ru", { minimumFractionDigits: 2 })} ₽</p>
+                  </div>
+                  <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 text-center">
+                    <p className="text-zinc-500 text-sm mb-1">Записей</p>
+                    <p className="text-3xl font-bold text-white">{royalties.length}</p>
+                  </div>
+                  <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 text-center">
+                    <p className="text-zinc-500 text-sm mb-1">Платформ</p>
+                    <p className="text-3xl font-bold text-white">{new Set(royalties.map(r => r.platform)).size}</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {royalties.map((r) => (
+                    <div key={r.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{r.track_title}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full">{r.platform}</span>
+                          <span className="text-zinc-500 text-xs">{r.period}</span>
+                        </div>
+                        {r.notes && <p className="text-zinc-500 text-xs mt-1">{r.notes}</p>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xl font-bold text-green-400">+{Number(r.amount).toLocaleString("ru", { minimumFractionDigits: 2 })}</p>
+                        <p className="text-zinc-500 text-xs">{r.currency}</p>
                       </div>
                     </div>
                   ))}

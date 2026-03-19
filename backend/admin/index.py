@@ -409,7 +409,12 @@ def handler(event: dict, context) -> dict:
         if not u:
             return err(401, 'Не авторизован')
         body = json.loads(event.get('body') or '{}')
-        cur.execute(f"INSERT INTO {schema}.distribution_requests (user_id, release_id, platforms, message) VALUES (%s,%s,%s,%s) RETURNING id, created_at", (u[0], body.get('release_id') or None, body.get('platforms', ''), body.get('message', '')))
+        lyrics = body.get('lyrics', '') or ''
+        copyright_text = body.get('copyright', '') or ''
+        cur.execute(
+            f"INSERT INTO {schema}.distribution_requests (user_id, release_id, platforms, message, lyrics, copyright) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id, created_at",
+            (u[0], body.get('release_id') or None, body.get('platforms', ''), body.get('message', ''), lyrics, copyright_text)
+        )
         row = cur.fetchone()
         conn.commit()
 
@@ -422,17 +427,20 @@ def handler(event: dict, context) -> dict:
 
         tg_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
         if tg_token:
+            lyrics_preview = (lyrics[:100] + '...') if len(lyrics) > 100 else (lyrics or '—')
             tg_msg = (
                 f"🎵 *Новая заявка на дистрибьюцию*\n\n"
                 f"*Артист:* {artist_name}\n"
                 f"*Email:* {artist_email}\n"
                 f"*Платформы:* {platforms or 'не указаны'}\n"
+                f"*Копирайт:* {copyright_text or '—'}\n"
+                f"*Текст:* {lyrics_preview}\n"
                 f"*Сообщение:* {message or '—'}\n"
                 f"_Заявка #{row[0]}_"
             )
             send_telegram(tg_token, tg_msg)
 
-        return ok({'request': {'id': row[0], 'status': 'new', 'platforms': platforms, 'message': message, 'created_at': str(row[1])}})
+        return ok({'request': {'id': row[0], 'status': 'new', 'platforms': platforms, 'message': message, 'lyrics': lyrics, 'copyright': copyright_text, 'created_at': str(row[1])}})
 
     # Список заявок на дистрибьюцию (admin или свои)
     if action == 'distribution' and method == 'GET':
@@ -441,10 +449,10 @@ def handler(event: dict, context) -> dict:
             return err(401, 'Не авторизован')
         uid = params.get('user_id') if u[1] == 'admin' else u[0]
         if uid:
-            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at FROM {schema}.distribution_requests WHERE user_id = %s ORDER BY created_at DESC", (uid,))
+            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at, lyrics, copyright FROM {schema}.distribution_requests WHERE user_id = %s ORDER BY created_at DESC", (uid,))
         else:
-            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at FROM {schema}.distribution_requests ORDER BY created_at DESC")
-        items = [{'id': r[0], 'user_id': r[1], 'release_id': r[2], 'platforms': r[3], 'message': r[4], 'status': r[5], 'created_at': str(r[6])} for r in cur.fetchall()]
+            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at, lyrics, copyright FROM {schema}.distribution_requests ORDER BY created_at DESC")
+        items = [{'id': r[0], 'user_id': r[1], 'release_id': r[2], 'platforms': r[3], 'message': r[4], 'status': r[5], 'created_at': str(r[6]), 'lyrics': r[7], 'copyright': r[8]} for r in cur.fetchall()]
         return ok({'requests': items})
 
     # Обновить статус заявки (admin)
@@ -454,6 +462,54 @@ def handler(event: dict, context) -> dict:
             return err(403, 'Доступ запрещён')
         body = json.loads(event.get('body') or '{}')
         cur.execute(f"UPDATE {schema}.distribution_requests SET status = %s WHERE id = %s", (body.get('status'), body.get('id')))
+        conn.commit()
+        return ok({'ok': True})
+
+    # === РОЯЛТИ ===
+
+    # Список роялти (артист — свои, admin — по user_id)
+    if action == 'royalties' and method == 'GET':
+        u = get_user(cur, token, schema)
+        if not u:
+            return err(401, 'Не авторизован')
+        uid = params.get('user_id') if u[1] == 'admin' else u[0]
+        if not uid:
+            return err(400, 'Укажите артиста')
+        cur.execute(f"SELECT id, user_id, period, platform, track_title, amount, currency, notes, created_at FROM {schema}.royalties WHERE user_id = %s ORDER BY created_at DESC", (uid,))
+        items = [{'id': r[0], 'user_id': r[1], 'period': r[2], 'platform': r[3], 'track_title': r[4], 'amount': str(r[5]), 'currency': r[6], 'notes': r[7], 'created_at': str(r[8])} for r in cur.fetchall()]
+        total = sum(float(i['amount']) for i in items)
+        return ok({'royalties': items, 'total': round(total, 2)})
+
+    # Добавить роялти (admin)
+    if action == 'royalties' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        uid = body.get('user_id')
+        period = body.get('period', '').strip()
+        platform = body.get('platform', '').strip()
+        track_title = body.get('track_title', '').strip()
+        amount = body.get('amount', 0)
+        currency = body.get('currency', 'RUB')
+        notes = body.get('notes', '') or ''
+        if not uid or not period or not platform or not track_title:
+            return err(400, 'Заполните все обязательные поля')
+        cur.execute(
+            f"INSERT INTO {schema}.royalties (user_id, period, platform, track_title, amount, currency, notes) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id, created_at",
+            (uid, period, platform, track_title, float(amount), currency, notes)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return ok({'royalty': {'id': row[0], 'user_id': uid, 'period': period, 'platform': platform, 'track_title': track_title, 'amount': str(amount), 'currency': currency, 'notes': notes, 'created_at': str(row[1])}})
+
+    # Удалить роялти (admin)
+    if action == 'del-royalty' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        cur.execute(f"DELETE FROM {schema}.royalties WHERE id = %s", (body.get('id'),))
         conn.commit()
         return ok({'ok': True})
 
