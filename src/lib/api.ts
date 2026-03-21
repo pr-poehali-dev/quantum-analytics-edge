@@ -97,6 +97,11 @@ export const api = {
     create: (data: object) => post("create-user", data),
     changePassword: (userId: number, newPassword: string) => post("change-password", { user_id: userId, new_password: newPassword }),
   },
+  documents: {
+    list: (userId?: number) => get("documents", userId ? `&user_id=${userId}` : ""),
+    upload: (data: object) => post("upload-document", data),
+    delete: (id: number) => post("del-document", { id }),
+  },
   radio: {
     like: (artistName: string, sessionId: string) => post("radio-like", { artist_name: artistName, session_id: sessionId }, false),
     unlike: (artistName: string, sessionId: string) => post("radio-unlike", { artist_name: artistName, session_id: sessionId }, false),

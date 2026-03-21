@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 
-type Tab = "materials" | "releases" | "stats" | "royalties" | "chat";
+type Tab = "materials" | "releases" | "stats" | "royalties" | "chat" | "documents";
 type SideTab = "artists" | "create-user";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
@@ -18,6 +18,7 @@ interface Message { id: number; sender_role: string; text: string; created_at: s
 interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; created_at: string; }
 interface Royalty { id: number; period: string; platform: string; track_title: string; amount: string; currency: string; notes: string | null; created_at: string; }
 interface DistRequest { id: number; platforms: string; message: string; status: string; lyrics: string | null; copyright: string | null; created_at: string; }
+interface Document { id: number; title: string; description: string; file_url: string; file_name: string; file_size: number; created_at: string; }
 
 const STATUS_LABELS: Record<string, string> = {
   uploaded: "Загружен", in_review: "На рассмотрении", approved: "Одобрен", rejected: "Отклонён", deleted: "Удалён",
@@ -73,6 +74,12 @@ export default function Admin() {
   const [changePwMsg, setChangePwMsg] = useState("");
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [savingTrack, setSavingTrack] = useState(false);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [docForm, setDocForm] = useState({ title: "", description: "", file_name: "" });
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docError, setDocError] = useState("");
+  const docFileRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,6 +102,7 @@ export default function Admin() {
     api.releases.list(selected.id).then((r) => setReleases(r.releases || []));
     api.royalties.list(selected.id).then((r) => { setRoyalties(r.royalties || []); setRoyaltiesTotal(r.total || 0); });
     api.distribution.list(selected.id).then((r) => setDistRequests(r.requests || []));
+    api.documents.list(selected.id).then((r) => setDocuments(r.documents || []));
   }, [selected]);
 
   useEffect(() => {
@@ -418,13 +426,13 @@ export default function Admin() {
             </div>
 
             <div className="flex gap-1 mb-6 bg-zinc-900 rounded-xl p-1 max-w-2xl overflow-x-auto">
-              {(["materials", "releases", "stats", "royalties", "chat"] as Tab[]).map((t) => (
+              {(["materials", "releases", "stats", "royalties", "documents", "chat"] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
                   className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
                 >
-                  {t === "materials" ? "Материалы" : t === "releases" ? "Релизы" : t === "stats" ? "Статистика" : t === "royalties" ? "Роялти" : "Чат"}
+                  {t === "materials" ? "Материалы" : t === "releases" ? "Релизы" : t === "stats" ? "Статистика" : t === "royalties" ? "Роялти" : t === "documents" ? "Документы" : "Чат"}
                 </button>
               ))}
             </div>
@@ -739,6 +747,104 @@ export default function Admin() {
             )}
 
             {/* Вкладка Чат */}
+            {/* ===== DOCUMENTS (admin upload) ===== */}
+            {tab === "documents" && (
+              <div className="space-y-4 max-w-2xl">
+                <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 space-y-3">
+                  <p className="font-semibold text-sm">Прикрепить документ</p>
+                  <Input
+                    value={docForm.title}
+                    onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
+                    placeholder="Название (например: Договор №1)"
+                    className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm"
+                  />
+                  <Input
+                    value={docForm.description}
+                    onChange={(e) => setDocForm({ ...docForm, description: e.target.value })}
+                    placeholder="Описание (необязательно)"
+                    className="bg-black border-white/10 text-white placeholder:text-zinc-600 text-sm"
+                  />
+                  <div>
+                    <p className="text-zinc-400 text-xs mb-1">Файл (PDF, DOC, DOCX, JPG, PNG)</p>
+                    <input
+                      ref={docFileRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) setDocFile(f); }}
+                      className="text-zinc-400 text-sm"
+                    />
+                  </div>
+                  {docError && <p className="text-red-400 text-sm">{docError}</p>}
+                  <Button
+                    onClick={async () => {
+                      if (!docFile || !docForm.title.trim() || !selected) return;
+                      setUploadingDoc(true);
+                      setDocError("");
+                      const reader = new FileReader();
+                      reader.onload = async () => {
+                        const base64 = (reader.result as string).split(",")[1];
+                        const res = await api.documents.upload({
+                          user_id: selected.id,
+                          title: docForm.title,
+                          description: docForm.description,
+                          file_data: base64,
+                          file_name: docFile.name,
+                        });
+                        if (res.document) {
+                          setDocuments((prev) => [res.document, ...prev]);
+                          setDocForm({ title: "", description: "", file_name: "" });
+                          setDocFile(null);
+                          if (docFileRef.current) docFileRef.current.value = "";
+                        } else {
+                          setDocError(res.error || "Ошибка загрузки");
+                        }
+                        setUploadingDoc(false);
+                      };
+                      reader.readAsDataURL(docFile);
+                    }}
+                    disabled={uploadingDoc || !docForm.title.trim() || !docFile}
+                    size="sm"
+                    className="bg-white text-black hover:bg-zinc-200"
+                  >
+                    {uploadingDoc ? "Загружаю..." : "Загрузить документ"}
+                  </Button>
+                </div>
+
+                {documents.length === 0 && <p className="text-zinc-500 text-sm">Документов нет</p>}
+                <div className="space-y-2">
+                  {documents.map((doc) => (
+                    <div key={doc.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex items-center gap-3">
+                      <div className="w-9 h-9 bg-zinc-800 rounded-lg flex items-center justify-center shrink-0">
+                        <Icon name="FileText" size={18} className="text-yellow-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{doc.title}</p>
+                        {doc.description && <p className="text-zinc-400 text-xs truncate">{doc.description}</p>}
+                        <div className="flex gap-2 mt-0.5">
+                          <span className="text-zinc-500 text-xs">{doc.file_name}</span>
+                          {doc.file_size && <span className="text-zinc-600 text-xs">{(doc.file_size / 1024).toFixed(0)} КБ</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white">
+                          <Icon name="Download" size={16} />
+                        </a>
+                        <button
+                          onClick={async () => {
+                            await api.documents.delete(doc.id);
+                            setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+                          }}
+                          className="text-red-500 hover:text-red-400"
+                        >
+                          <Icon name="Trash2" size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {tab === "chat" && (
               <div className="flex flex-col h-[calc(100vh-220px)] max-w-2xl">
                 <div ref={chatRef} className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1">

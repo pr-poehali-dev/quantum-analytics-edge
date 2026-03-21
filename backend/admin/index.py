@@ -599,4 +599,89 @@ def handler(event: dict, context) -> dict:
         all_likes = {r[0]: {'total': r[1], 'liked': r[2]} for r in cur.fetchall()}
         return ok({'top': top, 'all_likes': all_likes})
 
+    # Список документов (admin — все или по user_id; artist — свои)
+    if action == 'documents' and method == 'GET':
+        u = get_user(cur, token, schema)
+        if not u:
+            return err(401, 'Не авторизован')
+        if u[1] == 'admin':
+            uid = params.get('user_id')
+            if uid:
+                cur.execute(f"""
+                    SELECT d.id, d.title, d.description, d.file_url, d.file_name, d.file_size, d.created_at,
+                           uploader.artist_name as uploader
+                    FROM {schema}.documents d
+                    JOIN {schema}.users uploader ON uploader.id = d.uploaded_by
+                    WHERE d.user_id = %s ORDER BY d.created_at DESC
+                """, (int(uid),))
+            else:
+                cur.execute(f"""
+                    SELECT d.id, d.title, d.description, d.file_url, d.file_name, d.file_size, d.created_at,
+                           uploader.artist_name as uploader
+                    FROM {schema}.documents d
+                    JOIN {schema}.users uploader ON uploader.id = d.uploaded_by
+                    ORDER BY d.created_at DESC
+                """)
+        else:
+            cur.execute(f"""
+                SELECT d.id, d.title, d.description, d.file_url, d.file_name, d.file_size, d.created_at,
+                       uploader.artist_name as uploader
+                FROM {schema}.documents d
+                JOIN {schema}.users uploader ON uploader.id = d.uploaded_by
+                WHERE d.user_id = %s ORDER BY d.created_at DESC
+            """, (u[0],))
+        rows = cur.fetchall()
+        docs = [{'id': r[0], 'title': r[1], 'description': r[2], 'file_url': r[3],
+                 'file_name': r[4], 'file_size': r[5], 'created_at': str(r[6]), 'uploader': r[7]}
+                for r in rows]
+        return ok({'documents': docs})
+
+    # Загрузить документ (только admin)
+    if action == 'upload-document' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        target_uid = body.get('user_id')
+        title = str(body.get('title', '')).strip()
+        description = str(body.get('description', '')).strip()
+        file_data = body.get('file_data', '')
+        file_name = str(body.get('file_name', 'document')).strip()
+        if not target_uid or not title or not file_data:
+            return err(400, 'Укажите user_id, title и file_data')
+        file_bytes = base64.b64decode(file_data)
+        file_size = len(file_bytes)
+        ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'pdf'
+        key = f'documents/{uuid.uuid4()}.{ext}'
+        content_types = {
+            'pdf': 'application/pdf', 'doc': 'application/msword',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+        }
+        s3 = boto3.client('s3', endpoint_url='https://bucket.poehali.dev',
+                          aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                          aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+        s3.put_object(Bucket='files', Key=key, Body=file_bytes,
+                      ContentType=content_types.get(ext, 'application/octet-stream'))
+        file_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+        cur.execute(f"""
+            INSERT INTO {schema}.documents (user_id, title, description, file_url, file_name, file_size, uploaded_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, created_at
+        """, (int(target_uid), title, description or None, file_url, file_name, file_size, u[0]))
+        row = cur.fetchone()
+        conn.commit()
+        return ok({'document': {'id': row[0], 'title': title, 'description': description,
+                                'file_url': file_url, 'file_name': file_name,
+                                'file_size': file_size, 'created_at': str(row[1])}})
+
+    # Удалить документ (только admin)
+    if action == 'del-document' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        cur.execute(f"DELETE FROM {schema}.documents WHERE id = %s", (body.get('id'),))
+        conn.commit()
+        return ok({'ok': True})
+
     return err(404, 'Not found')

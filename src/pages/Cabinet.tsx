@@ -7,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 import AudioWavePlayer from "@/components/AudioWavePlayer";
 
-type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution";
+type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution" | "documents";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; label?: string; type?: string; }
 interface DistRequest { id: number; release_id: number | null; platforms: string; message: string; lyrics: string | null; copyright: string | null; status: string; created_at: string; }
 interface Royalty { id: number; period: string; platform: string; track_title: string; amount: string; currency: string; notes: string | null; created_at: string; }
 interface TrackItem { id: number; title: string; file_name: string; notes: string; status: string; file_url?: string; }
+interface Document { id: number; title: string; description: string; file_url: string; file_name: string; file_size: number; created_at: string; uploader: string; }
 interface ContractItem { id: number; title: string; type: string; status: string; amount: number; currency: string; notes: string; created_at: string; }
 interface MessageItem { id: number; text: string; sender_role: string; created_at: string; }
 
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { id: "distribution", label: "Дистрибьюция", icon: "Send" },
   { id: "royalties", label: "Финансы", icon: "DollarSign" },
   { id: "contracts", label: "Договоры", icon: "FileText" },
+  { id: "documents", label: "Документы", icon: "FolderOpen" },
   { id: "chat", label: "Поддержка", icon: "MessageCircle" },
 ];
 
@@ -58,6 +60,7 @@ export default function Cabinet() {
   const [distRequests, setDistRequests] = useState<DistRequest[]>([]);
   const [royalties, setRoyalties] = useState<Royalty[]>([]);
   const [royaltiesTotal, setRoyaltiesTotal] = useState(0);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [distForm, setDistForm] = useState({ platforms: "", message: "", release_id: "", lyrics: "", copyright: "" });
   const [submittingDist, setSubmittingDist] = useState(false);
   const [distError, setDistError] = useState("");
@@ -93,6 +96,7 @@ export default function Cabinet() {
     api.releases.myReleases().then((r) => setReleases(r.releases || []));
     api.distribution.myRequests().then((r) => setDistRequests(r.requests || []));
     api.royalties.list(user.id).then((r) => { setRoyalties(r.royalties || []); setRoyaltiesTotal(r.total || 0); });
+    api.documents.list().then((r) => setDocuments(r.documents || []));
   }, [user]);
 
   useEffect(() => {
@@ -788,6 +792,44 @@ export default function Cabinet() {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* ===== DOCUMENTS ===== */}
+          {tab === "documents" && (
+            <div className="max-w-2xl space-y-3">
+              {documents.length === 0 ? (
+                <div className="text-center py-20 text-slate-500">
+                  <Icon name="FolderOpen" size={48} className="mx-auto mb-4 opacity-30" />
+                  <p>Документов пока нет</p>
+                  <p className="text-sm mt-1 text-slate-600">Лейбл прикрепит договора и контракты для подписи</p>
+                </div>
+              ) : documents.map((doc) => (
+                <div key={doc.id} className="bg-[#1a2636] border border-white/5 rounded-xl p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 bg-[#0f1923] rounded-lg flex items-center justify-center shrink-0">
+                    <Icon name="FileText" size={20} className="text-[#f5a623]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{doc.title}</p>
+                    {doc.description && <p className="text-slate-400 text-xs mt-0.5 truncate">{doc.description}</p>}
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-slate-500 text-xs">{doc.file_name}</span>
+                      {doc.file_size && <span className="text-slate-600 text-xs">{(doc.file_size / 1024).toFixed(0)} КБ</span>}
+                      <span className="text-slate-600 text-xs">{new Date(doc.created_at).toLocaleDateString("ru")}</span>
+                    </div>
+                  </div>
+                  <a
+                    href={doc.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={doc.file_name}
+                    className="shrink-0 flex items-center gap-2 bg-[#f5a623] text-black hover:bg-[#f5a623]/90 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <Icon name="Download" size={15} />
+                    Скачать
+                  </a>
+                </div>
+              ))}
             </div>
           )}
 
