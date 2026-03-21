@@ -7,10 +7,11 @@
       "expectedStatus": 200
     },
     {
-      "name": "GET chat without token — 401",
+      "name": "Unauthorized access",
       "method": "GET",
       "path": "/",
       "expectedStatus": 401,
+      "expectedBody": {"error": "Не авторизован"},
       "bodyMatcher": "partial"
     }
   ]

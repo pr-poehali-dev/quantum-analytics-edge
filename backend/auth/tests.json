@@ -1,7 +1,7 @@
 {
   "tests": [
     {
-      "name": "OPTIONS preflight check",
+      "name": "OPTIONS preflight",
       "method": "OPTIONS",
       "path": "/",
       "expectedStatus": 200

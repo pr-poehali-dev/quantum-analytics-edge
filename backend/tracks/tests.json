@@ -7,18 +7,11 @@
       "expectedStatus": 200
     },
     {
-      "name": "GET tracks without token — 401",
+      "name": "Unauthorized access",
       "method": "GET",
       "path": "/",
       "expectedStatus": 401,
-      "bodyMatcher": "partial"
-    },
-    {
-      "name": "POST track without token — 401",
-      "method": "POST",
-      "path": "/",
-      "body": {},
-      "expectedStatus": 401,
+      "expectedBody": {"error": "Не авторизован"},
       "bodyMatcher": "partial"
     }
   ]

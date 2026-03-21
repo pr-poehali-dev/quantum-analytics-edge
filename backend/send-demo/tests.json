@@ -7,12 +7,11 @@
       "expectedStatus": 200
     },
     {
-      "name": "POST without body — 400",
+      "name": "Missing required fields",
       "method": "POST",
       "path": "/",
-      "body": {},
-      "expectedStatus": 400,
-      "bodyMatcher": "partial"
+      "body": {"name": "", "contact": "", "link": ""},
+      "expectedStatus": 400
     }
   ]
 }
