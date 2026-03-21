@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 
+type Mode = "login" | "register" | "forgot";
+
+function AnimatedPanel({ children, id }: { children: React.ReactNode; id: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.opacity = "0";
+    el.style.transform = "translateY(12px)";
+    const raf = requestAnimationFrame(() => {
+      el.style.transition = "opacity 0.28s ease, transform 0.28s ease";
+      el.style.opacity = "1";
+      el.style.transform = "translateY(0)";
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [id]);
+  return <div ref={ref}>{children}</div>;
+}
+
 export default function Login() {
   const { login, register } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [artistName, setArtistName] = useState("");
@@ -19,6 +38,12 @@ export default function Login() {
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotError, setForgotError] = useState("");
   const [forgotTempPw, setForgotTempPw] = useState("");
+
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError("");
+    setForgotError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,31 +84,30 @@ export default function Login() {
       {/* Left branding panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-[#1a2636] flex-col items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#f5a623]/10 via-transparent to-transparent" />
+        {/* Decorative circles */}
+        <div className="absolute top-1/4 right-0 w-64 h-64 bg-[#f5a623]/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-0 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl" />
         <div className="relative z-10 text-center">
           <a href="/" className="flex items-baseline justify-center gap-1 mb-8">
             <span className="text-5xl font-black tracking-tighter text-white">FRESH</span>
             <span className="text-5xl font-black tracking-tighter text-[#f5a623]">TUNES</span>
           </a>
-          <p className="text-slate-400 text-lg max-w-xs">Платформа для дистрибьюции и продвижения вашей музыки</p>
+          <p className="text-slate-400 text-lg max-w-xs leading-relaxed">
+            Платформа для дистрибьюции и продвижения вашей музыки
+          </p>
           <div className="mt-10 grid grid-cols-3 gap-4 text-center">
-            <div className="bg-white/5 rounded-xl p-4">
-              <p className="text-2xl font-bold text-[#f5a623]">100+</p>
-              <p className="text-slate-500 text-xs mt-1">Артистов</p>
-            </div>
-            <div className="bg-white/5 rounded-xl p-4">
-              <p className="text-2xl font-bold text-[#f5a623]">50+</p>
-              <p className="text-slate-500 text-xs mt-1">Платформ</p>
-            </div>
-            <div className="bg-white/5 rounded-xl p-4">
-              <p className="text-2xl font-bold text-[#f5a623]">1M+</p>
-              <p className="text-slate-500 text-xs mt-1">Стримов</p>
-            </div>
+            {[["100+", "Артистов"], ["50+", "Платформ"], ["1M+", "Стримов"]].map(([val, label]) => (
+              <div key={label} className="bg-white/5 rounded-xl p-4 border border-white/5">
+                <p className="text-2xl font-bold text-[#f5a623]">{val}</p>
+                <p className="text-slate-500 text-xs mt-1">{label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 overflow-hidden">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <a href="/" className="flex items-baseline justify-center gap-1 mb-8 lg:hidden">
@@ -91,8 +115,9 @@ export default function Login() {
             <span className="text-3xl font-black tracking-tighter text-[#f5a623]">TUNES</span>
           </a>
 
-          {mode === "forgot" ? (
-            <div>
+          {/* ── FORGOT ── */}
+          {mode === "forgot" && (
+            <AnimatedPanel id="forgot">
               <h2 className="text-2xl font-bold text-white mb-1">Восстановление пароля</h2>
               <p className="text-slate-400 text-sm mb-8">Введи email — мы пришлём временный пароль</p>
 
@@ -105,8 +130,9 @@ export default function Login() {
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
                       placeholder="твой@email.com"
-                      className="bg-[#1a2636] border-white/10 text-white placeholder:text-slate-600 h-11"
+                      className="bg-[#1a2636] border-white/10 text-white placeholder:text-slate-600 h-11 focus-visible:ring-[#f5a623]/40"
                       required
+                      autoFocus
                     />
                   </div>
                   {forgotError && (
@@ -115,39 +141,55 @@ export default function Login() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-bold h-11"
+                    className="w-full bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-bold h-11 transition-all"
                   >
-                    {loading ? "Отправляем..." : "Отправить пароль"}
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        Отправляем...
+                      </span>
+                    ) : "Отправить пароль"}
                   </Button>
                 </form>
               ) : (
-                <div className="bg-[#1a2636] border border-white/10 rounded-2xl p-6">
-                  {forgotTempPw ? (
-                    <>
-                      <p className="text-[#f5a623] font-semibold mb-3">Временный пароль:</p>
-                      <div className="bg-[#0f1923] border border-[#f5a623]/30 rounded-xl p-4 text-center mb-3">
-                        <p className="text-white font-mono text-2xl font-bold tracking-widest select-all">{forgotTempPw}</p>
-                      </div>
-                      <p className="text-slate-400 text-sm">Скопируй и войди с ним. Смени пароль после входа.</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-green-400 font-semibold mb-2">Письмо отправлено!</p>
-                      <p className="text-slate-400 text-sm">Проверь почту <span className="text-white">{forgotEmail}</span> и войди с временным паролем.</p>
-                    </>
-                  )}
-                </div>
+                <AnimatedPanel id="forgot-sent">
+                  <div className="bg-[#1a2636] border border-white/10 rounded-2xl p-6">
+                    {forgotTempPw ? (
+                      <>
+                        <p className="text-[#f5a623] font-semibold mb-3">Временный пароль:</p>
+                        <div className="bg-[#0f1923] border border-[#f5a623]/30 rounded-xl p-4 text-center mb-3">
+                          <p className="text-white font-mono text-2xl font-bold tracking-widest select-all">{forgotTempPw}</p>
+                        </div>
+                        <p className="text-slate-400 text-sm">Скопируй и войди с ним. Смени пароль после входа.</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center mb-3">
+                          <span className="text-green-400 text-lg">✓</span>
+                        </div>
+                        <p className="text-green-400 font-semibold mb-2">Письмо отправлено!</p>
+                        <p className="text-slate-400 text-sm">
+                          Проверь почту <span className="text-white">{forgotEmail}</span> и войди с временным паролем.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </AnimatedPanel>
               )}
 
               <button
-                onClick={() => { setMode("login"); setForgotSent(false); setForgotError(""); }}
-                className="mt-6 text-slate-500 hover:text-slate-300 text-sm transition-colors flex items-center gap-1"
+                onClick={() => { switchMode("login"); setForgotSent(false); }}
+                className="mt-6 text-slate-500 hover:text-slate-300 text-sm transition-colors flex items-center gap-1 group"
               >
-                ← Вернуться ко входу
+                <span className="group-hover:-translate-x-0.5 transition-transform">←</span>
+                Вернуться ко входу
               </button>
-            </div>
-          ) : (
-            <div>
+            </AnimatedPanel>
+          )}
+
+          {/* ── LOGIN / REGISTER ── */}
+          {mode !== "forgot" && (
+            <AnimatedPanel id={mode}>
               <h2 className="text-2xl font-bold text-white mb-1">
                 {mode === "login" ? "Добро пожаловать" : "Создать аккаунт"}
               </h2>
@@ -155,35 +197,47 @@ export default function Login() {
                 {mode === "login" ? "Войди в личный кабинет артиста" : "Зарегистрируйся как артист"}
               </p>
 
-              {/* Toggle */}
-              <div className="flex mb-6 bg-[#1a2636] rounded-xl p-1">
+              {/* Toggle tabs */}
+              <div className="flex mb-6 bg-[#1a2636] rounded-xl p-1 relative">
+                <div
+                  className="absolute top-1 bottom-1 rounded-lg bg-[#f5a623] transition-all duration-300 ease-out"
+                  style={{ width: "calc(50% - 4px)", left: mode === "login" ? "4px" : "calc(50%)" }}
+                />
                 <button
-                  onClick={() => { setMode("login"); setError(""); }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${mode === "login" ? "bg-[#f5a623] text-black" : "text-slate-400 hover:text-white"}`}
+                  onClick={() => switchMode("login")}
+                  className={`relative flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-200 z-10 ${mode === "login" ? "text-black" : "text-slate-400 hover:text-white"}`}
                 >
                   Войти
                 </button>
                 <button
-                  onClick={() => { setMode("register"); setError(""); }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${mode === "register" ? "bg-[#f5a623] text-black" : "text-slate-400 hover:text-white"}`}
+                  onClick={() => switchMode("register")}
+                  className={`relative flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-200 z-10 ${mode === "register" ? "text-black" : "text-slate-400 hover:text-white"}`}
                 >
                   Регистрация
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {mode === "register" && (
-                  <div>
+                <div
+                  style={{
+                    overflow: "hidden",
+                    maxHeight: mode === "register" ? "80px" : "0px",
+                    opacity: mode === "register" ? 1 : 0,
+                    transition: "max-height 0.3s ease, opacity 0.25s ease",
+                  }}
+                >
+                  <div className="pb-0.5">
                     <Label className="text-slate-300 text-sm mb-1.5 block">Имя артиста</Label>
                     <Input
                       value={artistName}
                       onChange={(e) => setArtistName(e.target.value)}
                       placeholder="Твой псевдоним"
-                      className="bg-[#1a2636] border-white/10 text-white placeholder:text-slate-600 h-11"
-                      required
+                      className="bg-[#1a2636] border-white/10 text-white placeholder:text-slate-600 h-11 focus-visible:ring-[#f5a623]/40"
+                      required={mode === "register"}
                     />
                   </div>
-                )}
+                </div>
+
                 <div>
                   <Label className="text-slate-300 text-sm mb-1.5 block">Email</Label>
                   <Input
@@ -191,7 +245,7 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={mode === "login" ? "email или admin" : "твой@email.com"}
-                    className="bg-[#1a2636] border-white/10 text-white placeholder:text-slate-600 h-11"
+                    className="bg-[#1a2636] border-white/10 text-white placeholder:text-slate-600 h-11 focus-visible:ring-[#f5a623]/40"
                     required
                     autoComplete="email"
                   />
@@ -203,29 +257,44 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="bg-[#1a2636] border-white/10 text-white placeholder:text-slate-600 h-11"
+                    className="bg-[#1a2636] border-white/10 text-white placeholder:text-slate-600 h-11 focus-visible:ring-[#f5a623]/40"
                     required
                     autoComplete={mode === "login" ? "current-password" : "new-password"}
                   />
                 </div>
 
-                {error && (
+                <div
+                  style={{
+                    overflow: "hidden",
+                    maxHeight: error ? "60px" : "0px",
+                    opacity: error ? 1 : 0,
+                    transition: "max-height 0.25s ease, opacity 0.2s ease",
+                  }}
+                >
                   <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{error}</p>
-                )}
+                </div>
 
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-bold h-11 text-base"
+                  className="w-full bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-bold h-11 text-base transition-all active:scale-[0.98]"
                 >
-                  {loading ? "Загрузка..." : mode === "login" ? "Войти" : "Создать аккаунт"}
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                      Загрузка...
+                    </span>
+                  ) : mode === "login" ? "Войти" : "Создать аккаунт"}
                 </Button>
               </form>
 
               {mode === "login" && (
-                <div className="mt-5 text-center">
+                <div
+                  className="mt-5 text-center"
+                  style={{ animation: "fadeIn 0.3s ease 0.15s both" }}
+                >
                   <button
-                    onClick={() => { setMode("forgot"); setForgotEmail(email); setForgotSent(false); setForgotError(""); }}
+                    onClick={() => { switchMode("forgot"); setForgotEmail(email); setForgotSent(false); }}
                     className="text-slate-500 hover:text-slate-300 text-sm transition-colors"
                   >
                     Забыли пароль?
@@ -236,10 +305,17 @@ export default function Login() {
               <p className="mt-8 text-center text-slate-600 text-sm">
                 <a href="/" className="hover:text-slate-400 transition-colors">← На главную</a>
               </p>
-            </div>
+            </AnimatedPanel>
           )}
         </div>
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
