@@ -19,10 +19,15 @@ async function put(action: string, body: unknown) {
   return r.json();
 }
 
+async function safeJson(r: Response) {
+  const text = await r.text();
+  try { return JSON.parse(text); } catch { return { error: `Неверный ответ сервера: ${text.slice(0, 100)}` }; }
+}
+
 export const api = {
   auth: {
-    register: (data: object) => fetch(`${AUTH}?action=register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
-    login: (data: object) => fetch(`${AUTH}?action=login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+    register: (data: object) => fetch(`${AUTH}?action=register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(safeJson),
+    login: (data: object) => fetch(`${AUTH}?action=login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(safeJson),
     me: () => fetch(`${AUTH}?action=me`, { headers: headers() }).then(r => r.json()),
     logout: () => fetch(`${AUTH}?action=logout`, { method: "POST", headers: headers() }).then(r => r.json()),
     forgotPassword: (email: string) => fetch(`${AUTH}?action=forgot-password`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) }).then(r => r.json()),

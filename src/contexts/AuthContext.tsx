@@ -56,13 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.auth.login({ email, password });
       if (res.error) return { error: res.error };
-      if (!res.token) return { error: "Нет ответа от сервера, попробуй позже" };
+      if (!res.token) return { error: res.message || "Нет ответа от сервера, попробуй позже" };
       localStorage.setItem("ks_token", res.token);
       localStorage.setItem("ks_user", JSON.stringify(res.user));
       setUser(res.user);
       return { role: res.user?.role };
-    } catch {
-      return { error: "Ошибка соединения, попробуй позже" };
+    } catch (e) {
+      console.error("[login error]", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      return { error: `Ошибка: ${msg}` };
     }
   };
 
