@@ -210,10 +210,8 @@ export default function Cabinet() {
       <aside className={`fixed lg:static top-0 left-0 h-full w-72 bg-[#1a2636] z-40 flex flex-col transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         {/* Logo */}
         <div className="flex items-center justify-between p-5 border-b border-white/10">
-          <a href="/" className="flex items-baseline gap-1">
-            <span className="text-2xl font-black tracking-tighter text-white">FRESH</span>
-            <span className="text-2xl font-black tracking-tighter text-[#f5a623]">TUNES</span>
-            <span className="text-xs text-slate-400 ml-1 mt-1">Beta</span>
+          <a href="/" className="text-lg font-bold tracking-tighter text-white leading-tight">
+            Калашников <span className="text-[#f5a623]">Саунд</span>
           </a>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
             <Icon name="X" size={20} />
