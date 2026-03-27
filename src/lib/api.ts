@@ -1,6 +1,7 @@
 const BASE = "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f";
 const TRACKS = "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2";
 const AUTH = "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c";
+const SMARTLINK_BASE = "https://functions.poehali.dev/a881dc8f-d2db-4da3-b755-0d1aa6cd08a0";
 
 function token() { return localStorage.getItem("ks_token") || ""; }
 function headers() { return { "Content-Type": "application/json", "X-Session-Token": token() }; }
@@ -106,5 +107,10 @@ export const api = {
     like: (artistName: string, sessionId: string) => post("radio-like", { artist_name: artistName, session_id: sessionId }, false),
     unlike: (artistName: string, sessionId: string) => post("radio-unlike", { artist_name: artistName, session_id: sessionId }, false),
     top: (sessionId: string) => get("radio-top", `&session_id=${sessionId}`),
+  },
+  smartLinks: {
+    get: (releaseId: number) => fetch(`${BASE}?action=smart-link&release_id=${releaseId}`, { headers: headers() }).then(r => r.json()),
+    save: (data: object) => fetch(`${BASE}?action=smart-link`, { method: "POST", headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+    public: (slug: string) => fetch(`${SMARTLINK_BASE}?slug=${slug}`).then(r => r.json()),
   },
 };

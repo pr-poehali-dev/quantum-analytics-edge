@@ -82,6 +82,13 @@ export default function Admin() {
   const docFileRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
+  interface SmartLink { id?: number; release_id: number; slug: string; title: string; artist_name: string; cover_url: string; description: string; links: {platform: string; url: string; icon: string}[]; active: boolean; }
+  const [smartLinkModal, setSmartLinkModal] = useState<{release: Release} | null>(null);
+  const [smartLink, setSmartLink] = useState<SmartLink | null>(null);
+  const [smartLinkLoading, setSmartLinkLoading] = useState(false);
+  const [smartLinkSaving, setSmartLinkSaving] = useState(false);
+  const [smartLinkMsg, setSmartLinkMsg] = useState("");
+
   useEffect(() => {
     if (!loading && !user) navigate("/login");
     if (!loading && user && user.role !== "admin") navigate("/cabinet");
@@ -272,6 +279,56 @@ export default function Admin() {
     setTracks((prev) => prev.map((t) => t.id === editingTrack.id ? editingTrack : t));
     setSavingTrack(false);
     setEditingTrack(null);
+  };
+
+  const openSmartLink = async (release: Release) => {
+    setSmartLinkModal({ release });
+    setSmartLinkLoading(true);
+    setSmartLinkMsg("");
+    const res = await api.smartLinks.get(release.id);
+    if (res.smart_link) {
+      setSmartLink(res.smart_link);
+    } else {
+      setSmartLink({
+        release_id: release.id,
+        slug: release.title.toLowerCase().replace(/[^a-z0-9а-яё]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, ""),
+        title: release.title,
+        artist_name: release.artist_name || "",
+        cover_url: release.cover_url || "",
+        description: "",
+        links: [],
+        active: true,
+      });
+    }
+    setSmartLinkLoading(false);
+  };
+
+  const saveSmartLink = async () => {
+    if (!smartLink) return;
+    setSmartLinkSaving(true);
+    setSmartLinkMsg("");
+    const res = await api.smartLinks.save(smartLink);
+    setSmartLinkSaving(false);
+    if (res.ok) {
+      setSmartLinkMsg(`Сохранено! Ссылка: /r/${res.slug || smartLink.slug}`);
+    } else {
+      setSmartLinkMsg(res.error || "Ошибка сохранения");
+    }
+  };
+
+  const addSmartLinkPlatform = () => {
+    if (!smartLink) return;
+    setSmartLink({ ...smartLink, links: [...smartLink.links, { platform: "", url: "", icon: "Music" }] });
+  };
+
+  const removeSmartLinkPlatform = (idx: number) => {
+    if (!smartLink) return;
+    setSmartLink({ ...smartLink, links: smartLink.links.filter((_, i) => i !== idx) });
+  };
+
+  const updateSmartLinkPlatform = (idx: number, field: string, value: string) => {
+    if (!smartLink) return;
+    setSmartLink({ ...smartLink, links: smartLink.links.map((l, i) => i === idx ? { ...l, [field]: value } : l) });
   };
 
   if (loading || !user) return (
@@ -655,10 +712,148 @@ export default function Admin() {
                             </div>
                           </div>
                           {rel.notes && <p className="text-zinc-500 text-xs mt-1">{rel.notes}</p>}
+                          <div className="mt-2">
+                            <button
+                              onClick={() => openSmartLink(rel)}
+                              className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                            >
+                              <Icon name="Link" size={12} />
+                              Смарт-линк
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Модалка смарт-линка */}
+            {smartLinkModal && (
+              <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setSmartLinkModal(null)}>
+                <div className="bg-zinc-950 border border-white/10 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h2 className="font-bold text-lg">Смарт-линк</h2>
+                      <p className="text-zinc-500 text-xs">{smartLinkModal.release.title}</p>
+                    </div>
+                    <button onClick={() => setSmartLinkModal(null)} className="text-zinc-500 hover:text-white">
+                      <Icon name="X" size={20} />
+                    </button>
+                  </div>
+
+                  {smartLinkLoading ? (
+                    <p className="text-zinc-500 text-sm text-center py-8">Загрузка...</p>
+                  ) : smartLink && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs text-zinc-400 mb-1 block">Slug (часть URL)</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-500 text-xs shrink-0">/r/</span>
+                          <Input
+                            value={smartLink.slug}
+                            onChange={(e) => setSmartLink({ ...smartLink, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })}
+                            className="bg-black border-white/10 text-white text-sm"
+                            placeholder="my-release-slug"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-zinc-400 mb-1 block">Заголовок страницы</label>
+                        <Input value={smartLink.title} onChange={(e) => setSmartLink({ ...smartLink, title: e.target.value })} className="bg-black border-white/10 text-white text-sm" />
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-zinc-400 mb-1 block">Исполнитель</label>
+                        <Input value={smartLink.artist_name} onChange={(e) => setSmartLink({ ...smartLink, artist_name: e.target.value })} className="bg-black border-white/10 text-white text-sm" />
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-zinc-400 mb-1 block">Описание</label>
+                        <Input value={smartLink.description} onChange={(e) => setSmartLink({ ...smartLink, description: e.target.value })} className="bg-black border-white/10 text-white text-sm" placeholder="Краткое описание релиза" />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs text-zinc-400">Платформы</label>
+                          <button onClick={addSmartLinkPlatform} className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                            <Icon name="Plus" size={12} />
+                            Добавить
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {smartLink.links.map((link, idx) => (
+                            <div key={idx} className="flex gap-2 items-center">
+                              <select
+                                value={link.platform}
+                                onChange={(e) => {
+                                  const pl = e.target.value;
+                                  const icons: Record<string, string> = { "Spotify": "Music", "Apple Music": "Music2", "YouTube Music": "Youtube", "VK Музыка": "Music", "Яндекс Музыка": "Music", "Deezer": "Music", "Другое": "ExternalLink" };
+                                  updateSmartLinkPlatform(idx, "platform", pl);
+                                  updateSmartLinkPlatform(idx, "icon", icons[pl] || "ExternalLink");
+                                }}
+                                className="bg-black border border-white/10 text-white rounded-md px-2 py-1.5 text-xs w-36 shrink-0"
+                              >
+                                <option value="">Платформа</option>
+                                {["Spotify", "Apple Music", "YouTube Music", "VK Музыка", "Яндекс Музыка", "Deezer", "Другое"].map((p) => (
+                                  <option key={p} value={p}>{p}</option>
+                                ))}
+                              </select>
+                              <Input
+                                value={link.url}
+                                onChange={(e) => updateSmartLinkPlatform(idx, "url", e.target.value)}
+                                placeholder="https://..."
+                                className="bg-black border-white/10 text-white text-xs flex-1"
+                              />
+                              <button onClick={() => removeSmartLinkPlatform(idx)} className="text-zinc-600 hover:text-red-400 shrink-0">
+                                <Icon name="Trash2" size={14} />
+                              </button>
+                            </div>
+                          ))}
+                          {smartLink.links.length === 0 && (
+                            <p className="text-zinc-600 text-xs">Добавьте ссылки на платформы</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="sl-active"
+                          checked={smartLink.active}
+                          onChange={(e) => setSmartLink({ ...smartLink, active: e.target.checked })}
+                          className="rounded"
+                        />
+                        <label htmlFor="sl-active" className="text-sm text-zinc-300">Страница активна</label>
+                      </div>
+
+                      {smartLinkMsg && (
+                        <p className={`text-xs ${smartLinkMsg.includes("Ошибка") ? "text-red-400" : "text-green-400"}`}>
+                          {smartLinkMsg}
+                          {smartLinkMsg.includes("/r/") && (
+                            <a href={`/r/${smartLink.slug}`} target="_blank" rel="noopener noreferrer" className="ml-2 underline">
+                              Открыть
+                            </a>
+                          )}
+                        </p>
+                      )}
+
+                      <div className="flex gap-2 pt-2">
+                        <Button onClick={saveSmartLink} disabled={smartLinkSaving || !smartLink.slug || !smartLink.title} className="bg-purple-600 hover:bg-purple-500 text-white flex-1">
+                          {smartLinkSaving ? "Сохраняю..." : "Сохранить"}
+                        </Button>
+                        {smartLink.slug && (
+                          <a href={`/r/${smartLink.slug}`} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" className="border-white/10 text-zinc-300 hover:text-white">
+                              <Icon name="ExternalLink" size={14} />
+                            </Button>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

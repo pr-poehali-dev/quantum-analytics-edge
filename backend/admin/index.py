@@ -684,4 +684,47 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         return ok({'ok': True})
 
+    # Получить смарт-линк по release_id (admin)
+    if action == 'smart-link' and method == 'GET':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        release_id = params.get('release_id')
+        if not release_id:
+            return err(400, 'Укажите release_id')
+        cur.execute(f"SELECT id, release_id, slug, title, artist_name, cover_url, description, links, active FROM {schema}.smart_links WHERE release_id = %s", (release_id,))
+        row = cur.fetchone()
+        if not row:
+            return ok({'smart_link': None})
+        return ok({'smart_link': {'id': row[0], 'release_id': row[1], 'slug': row[2], 'title': row[3], 'artist_name': row[4], 'cover_url': row[5], 'description': row[6], 'links': row[7] if row[7] else [], 'active': row[8]}})
+
+    # Создать или обновить смарт-линк (admin)
+    if action == 'smart-link' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        release_id = body.get('release_id')
+        slug = body.get('slug', '').strip().lower().replace(' ', '-')
+        title = body.get('title', '').strip()
+        if not release_id or not slug or not title:
+            return err(400, 'Укажите release_id, slug и title')
+        links_json = json.dumps(body.get('links', []), ensure_ascii=False)
+        cur.execute(f"SELECT id FROM {schema}.smart_links WHERE release_id = %s", (release_id,))
+        existing = cur.fetchone()
+        if existing:
+            cur.execute(
+                f"UPDATE {schema}.smart_links SET slug=%s, title=%s, artist_name=%s, cover_url=%s, description=%s, links=%s, active=%s, updated_at=NOW() WHERE release_id=%s",
+                (slug, title, body.get('artist_name'), body.get('cover_url'), body.get('description'), links_json, body.get('active', True), release_id)
+            )
+            conn.commit()
+            return ok({'ok': True, 'slug': slug})
+        else:
+            cur.execute(
+                f"INSERT INTO {schema}.smart_links (release_id, slug, title, artist_name, cover_url, description, links, active) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                (release_id, slug, title, body.get('artist_name'), body.get('cover_url'), body.get('description'), links_json, body.get('active', True))
+            )
+            conn.commit()
+            return ok({'ok': True, 'slug': slug})
+
     return err(404, 'Not found')

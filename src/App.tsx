@@ -12,6 +12,7 @@ import Admin from "./pages/Admin";
 import LiveRadio from "./pages/LiveRadio";
 import Services from "./pages/Services";
 import NotFound from "./pages/NotFound";
+import SmartLink from "./pages/SmartLink";
 import { AuthProvider } from "./contexts/AuthContext";
 import { api } from "./lib/api";
 
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/radio" element={<LiveRadio />} />
             <Route path="/services" element={<Services />} />
+            <Route path="/r/:slug" element={<SmartLink />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

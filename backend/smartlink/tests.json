@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET без slug — 400",
+      "method": "GET",
+      "path": "/?action=",
+      "expectedStatus": 400
+    },
+    {
+      "name": "GET несуществующий slug — 404",
+      "method": "GET",
+      "path": "/?slug=nonexistent-slug-xyz123",
+      "expectedStatus": 404
+    }
+  ]
+}
