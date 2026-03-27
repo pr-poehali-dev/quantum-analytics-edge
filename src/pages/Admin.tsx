@@ -91,7 +91,7 @@ export default function Admin() {
     if (!user) return;
     api.admin.artists().then((r) => setArtists(r.artists || []));
     api.visits.stats().then((r) => { if (!r.error) setVisitStats(r); });
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!selected) return;
@@ -103,11 +103,11 @@ export default function Admin() {
     api.royalties.list(selected.id).then((r) => { setRoyalties(r.royalties || []); setRoyaltiesTotal(r.total || 0); });
     api.distribution.list(selected.id).then((r) => setDistRequests(r.requests || []));
     api.documents.list(selected.id).then((r) => setDocuments(r.documents || []));
-  }, [selected]);
+  }, [selected?.id]);
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
-  }, [messages]);
+  }, [messages.length]);
 
   const handleSend = async () => {
     if (!msgText.trim() || !selected || sending) return;
