@@ -79,6 +79,10 @@ export default function Cabinet() {
   const [releaseFilter, setReleaseFilter] = useState("Все");
   const [releaseSearch, setReleaseSearch] = useState("");
   const [releaseView, setReleaseView] = useState<"table" | "grid">("table");
+  const [coverStyle, setCoverStyle] = useState("");
+  const [generatingCover, setGeneratingCover] = useState(false);
+  const [generatedCoverUrl, setGeneratedCoverUrl] = useState<string | null>(null);
+  const [coverGenError, setCoverGenError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
@@ -503,6 +507,84 @@ export default function Cabinet() {
                     placeholder="Название трека"
                     className="bg-[#0f1923] border-white/10 text-white placeholder:text-slate-600"
                   />
+
+                  {/* ИИ генерация обложки */}
+                  <div className="bg-[#0f1923] border border-white/5 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Icon name="Sparkles" size={15} className="text-[#f5a623]" />
+                      <p className="text-sm font-semibold">Сгенерировать обложку с ИИ</p>
+                    </div>
+                    <Input
+                      value={coverStyle}
+                      onChange={(e) => setCoverStyle(e.target.value)}
+                      placeholder="Стиль / настроение (dark trap, neon city, minimal, lo-fi...)"
+                      className="bg-black border-white/10 text-white placeholder:text-slate-600 text-sm"
+                    />
+                    <Button
+                      onClick={async () => {
+                        if (!trackTitle.trim()) { setCoverGenError("Сначала введите название трека"); return; }
+                        setGeneratingCover(true);
+                        setCoverGenError("");
+                        setGeneratedCoverUrl(null);
+                        const res = await api.ai.generateCover({
+                          title: trackTitle,
+                          style: coverStyle || undefined,
+                          artist_name: user?.artist_name || undefined,
+                        });
+                        if (res.url) {
+                          setGeneratedCoverUrl(res.url);
+                        } else {
+                          setCoverGenError(res.error || "Ошибка генерации");
+                        }
+                        setGeneratingCover(false);
+                      }}
+                      disabled={generatingCover || !trackTitle.trim()}
+                      size="sm"
+                      variant="outline"
+                      className="border-[#f5a623]/40 text-[#f5a623] hover:bg-[#f5a623]/10"
+                    >
+                      {generatingCover ? (
+                        <span className="flex items-center gap-2">
+                          <Icon name="Loader" size={14} className="animate-spin" />
+                          Генерирую...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Icon name="Wand2" size={14} />
+                          Сгенерировать
+                        </span>
+                      )}
+                    </Button>
+                    {coverGenError && <p className="text-red-400 text-xs">{coverGenError}</p>}
+                    {generatedCoverUrl && (
+                      <div className="space-y-2">
+                        <img
+                          src={generatedCoverUrl}
+                          alt="Сгенерированная обложка"
+                          className="w-40 h-40 rounded-xl object-cover border border-white/10"
+                        />
+                        <div className="flex gap-2">
+                          <a
+                            href={generatedCoverUrl}
+                            download="cover.jpg"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs bg-[#f5a623] text-black px-3 py-1.5 rounded-lg font-semibold hover:bg-[#f5a623]/80 transition-colors"
+                          >
+                            <Icon name="Download" size={12} />
+                            Скачать обложку
+                          </a>
+                          <button
+                            onClick={() => { setGeneratedCoverUrl(null); setCoverGenError(""); }}
+                            className="text-xs text-slate-500 hover:text-white px-2"
+                          >
+                            Сбросить
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <input ref={fileRef} type="file" accept="audio/*" onChange={handleFileSelect} className="text-slate-400 text-sm" />
                   {audioPreviewUrl && (
                     <div className="bg-[#0f1923] border border-white/10 rounded-xl p-4">

@@ -3,6 +3,7 @@ const TRACKS = "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479b
 const AUTH = "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c";
 const SMARTLINK_BASE = "https://functions.poehali.dev/a881dc8f-d2db-4da3-b755-0d1aa6cd08a0";
 const BEATSTORE_BASE = "https://functions.poehali.dev/76bda3d9-5afb-4469-b432-9f145059aa2e";
+const GENERATE_COVER_BASE = "https://functions.poehali.dev/8773f1e2-7da7-4964-abdb-2b5566495669";
 
 function token() { return localStorage.getItem("ks_token") || ""; }
 function headers() { return { "Content-Type": "application/json", "X-Session-Token": token() }; }
@@ -113,6 +114,10 @@ export const api = {
     get: (releaseId: number) => fetch(`${BASE}?action=smart-link&release_id=${releaseId}`, { headers: headers() }).then(r => r.json()),
     save: (data: object) => fetch(`${BASE}?action=smart-link`, { method: "POST", headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     public: (slug: string) => fetch(`${SMARTLINK_BASE}?slug=${slug}`).then(r => r.json()),
+  },
+  ai: {
+    generateCover: (data: { title: string; style?: string; artist_name?: string }) =>
+      fetch(GENERATE_COVER_BASE, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
   },
   beatstore: {
     listBeats: (params?: string) => fetch(`${BEATSTORE_BASE}?action=list-beats${params || ''}`).then(r => r.json()),
