@@ -4,6 +4,7 @@ const AUTH = "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c
 const SMARTLINK_BASE = "https://functions.poehali.dev/a881dc8f-d2db-4da3-b755-0d1aa6cd08a0";
 const BEATSTORE_BASE = "https://functions.poehali.dev/76bda3d9-5afb-4469-b432-9f145059aa2e";
 const GENERATE_COVER_BASE = "https://functions.poehali.dev/8773f1e2-7da7-4964-abdb-2b5566495669";
+const SUNO_BASE = "https://functions.poehali.dev/2747ca88-4546-49f4-99d9-add5fa468652";
 
 function token() { return localStorage.getItem("ks_token") || ""; }
 function headers() { return { "Content-Type": "application/json", "X-Session-Token": token() }; }
@@ -118,6 +119,12 @@ export const api = {
   ai: {
     generateCover: (data: { title: string; style?: string; artist_name?: string }) =>
       fetch(GENERATE_COVER_BASE, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+  },
+  suno: {
+    generate: (data: object) =>
+      fetch(SUNO_BASE, { method: "POST", headers: headers(), body: JSON.stringify({ ...data, action: "generate" }) }).then(r => r.json()),
+    status: (taskId: string) =>
+      fetch(SUNO_BASE, { method: "POST", headers: headers(), body: JSON.stringify({ action: "status", task_id: taskId }) }).then(r => r.json()),
   },
   beatstore: {
     listBeats: (params?: string) => fetch(`${BEATSTORE_BASE}?action=list-beats${params || ''}`).then(r => r.json()),

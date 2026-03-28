@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Unauthorized request",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "generate", "prompt": "test"},
+      "expectedStatus": 401
+    }
+  ]
+}

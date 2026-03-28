@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 import AudioWavePlayer from "@/components/AudioWavePlayer";
 import NewReleaseForm from "@/components/cabinet/NewReleaseForm";
+import SunoGenerator from "@/components/cabinet/SunoGenerator";
 
-type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution" | "documents";
+type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution" | "documents" | "ai-music";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; label?: string; type?: string; }
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { id: "royalties", label: "Финансы", icon: "DollarSign" },
   { id: "contracts", label: "Договоры", icon: "FileText" },
   { id: "documents", label: "Документы", icon: "FolderOpen" },
+  { id: "ai-music", label: "Генерация песен", icon: "Sparkles" },
   { id: "chat", label: "Поддержка", icon: "MessageCircle" },
 ];
 
@@ -940,6 +942,9 @@ export default function Cabinet() {
               ))}
             </div>
           )}
+
+          {/* ===== AI MUSIC ===== */}
+          {tab === "ai-music" && <SunoGenerator />}
 
           {/* ===== CHAT ===== */}
           {tab === "chat" && (
