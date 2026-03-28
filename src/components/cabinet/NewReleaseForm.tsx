@@ -256,26 +256,29 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                 <div><h4 className="font-semibold text-sm">Персоны и роли</h4><p className="text-slate-500 text-xs mt-0.5">Укажите всех участников релиза</p></div>
 
                 {/* Исполнитель */}
-                <div className="flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#f5a623]/10 flex items-center justify-center shrink-0">
-                    <Icon name="Mic2" size={16} className="text-[#f5a623]" />
+                <div className="bg-[#0f1923] rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-[#f5a623]/10 flex items-center justify-center shrink-0">
+                      <Icon name="Mic2" size={16} className="text-[#f5a623]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-500 mb-1">Исполнитель <span className="text-red-400">*</span></p>
+                      <input
+                        type="text"
+                        value={form.artist_name}
+                        onChange={e => setForm({ ...form, artist_name: e.target.value })}
+                        placeholder="Имя артиста"
+                        className="w-full bg-transparent text-sm text-white placeholder:text-slate-600 outline-none"
+                      />
+                    </div>
+                    <span className="text-xs text-slate-500 shrink-0">Основной</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-500 mb-1">Исполнитель <span className="text-red-400">*</span></p>
-                    <Input
-                      value={form.artist_name}
-                      onChange={e => setForm({ ...form, artist_name: e.target.value })}
-                      placeholder="Имя артиста"
-                      className="bg-transparent border-none p-0 h-auto text-sm text-white placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-                  </div>
-                  <span className="text-xs text-slate-500 shrink-0">Основной</span>
                 </div>
 
                 {/* Feat. артисты */}
                 <div className="space-y-2">
                   {featArtists.map((name, i) => (
-                    <div key={i} className="flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3 group">
+                    <div key={i} className="flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3">
                       <div className="w-9 h-9 rounded-lg bg-[#f5a623]/10 flex items-center justify-center shrink-0">
                         <Icon name="Mic2" size={16} className="text-[#f5a623]" />
                       </div>
@@ -283,8 +286,8 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                         <p className="text-xs text-slate-500 mb-0.5">Feat. исполнитель</p>
                         <p className="text-sm text-white">{name}</p>
                       </div>
-                      <span className="text-xs text-slate-500 shrink-0 mr-2">feat.</span>
-                      <button onClick={() => removeFeat(i)} className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                      <span className="text-xs text-slate-500 shrink-0 mr-1">feat.</span>
+                      <button onClick={() => removeFeat(i)} className="text-slate-600 hover:text-red-400 transition-colors p-1">
                         <Icon name="X" size={14} />
                       </button>
                     </div>
@@ -292,17 +295,20 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
 
                   {/* Добавить feat. */}
                   <div className="flex gap-2">
-                    <div className="flex-1 flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3 border border-dashed border-white/10 focus-within:border-[#f5a623]/30 transition-colors">
-                      <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                        <Icon name="UserPlus" size={16} className="text-slate-500" />
+                    <div className="flex-1 bg-[#0f1923] rounded-xl px-4 py-3 border border-dashed border-white/10 focus-within:border-[#f5a623]/30 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                          <Icon name="UserPlus" size={16} className="text-slate-500" />
+                        </div>
+                        <input
+                          type="text"
+                          value={featInput}
+                          onChange={e => setFeatInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addFeat(); } }}
+                          placeholder="Добавить feat. исполнителя..."
+                          className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-600 outline-none"
+                        />
                       </div>
-                      <Input
-                        value={featInput}
-                        onChange={e => setFeatInput(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && addFeat()}
-                        placeholder="Добавить feat. исполнителя..."
-                        className="bg-transparent border-none p-0 h-auto text-sm text-white placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
                     </div>
                     <button
                       onClick={addFeat}
@@ -315,37 +321,43 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                 </div>
 
                 {/* Композитор */}
-                <div className="flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                    <Icon name="Music" size={16} className="text-blue-400" />
+                <div className="bg-[#0f1923] rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <Icon name="Music" size={16} className="text-blue-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-500 mb-1">Композитор</p>
+                      <input
+                        type="text"
+                        value={form.composer}
+                        onChange={e => setForm({ ...form, composer: e.target.value })}
+                        placeholder="Имя композитора"
+                        className="w-full bg-transparent text-sm text-white placeholder:text-slate-600 outline-none"
+                      />
+                    </div>
+                    <span className="text-xs text-slate-500 shrink-0">Композитор</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-500 mb-1">Композитор</p>
-                    <Input
-                      value={form.composer}
-                      onChange={e => setForm({ ...form, composer: e.target.value })}
-                      placeholder="Имя композитора"
-                      className="bg-transparent border-none p-0 h-auto text-sm text-white placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-                  </div>
-                  <span className="text-xs text-slate-500 shrink-0">Композитор</span>
                 </div>
 
                 {/* Автор текста */}
-                <div className="flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3">
-                  <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
-                    <Icon name="PenLine" size={16} className="text-purple-400" />
+                <div className="bg-[#0f1923] rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+                      <Icon name="PenLine" size={16} className="text-purple-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-500 mb-1">Автор текста</p>
+                      <input
+                        type="text"
+                        value={form.lyricist}
+                        onChange={e => setForm({ ...form, lyricist: e.target.value })}
+                        placeholder="Имя автора текста"
+                        className="w-full bg-transparent text-sm text-white placeholder:text-slate-600 outline-none"
+                      />
+                    </div>
+                    <span className="text-xs text-slate-500 shrink-0">Автор текста</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-500 mb-1">Автор текста</p>
-                    <Input
-                      value={form.lyricist}
-                      onChange={e => setForm({ ...form, lyricist: e.target.value })}
-                      placeholder="Имя автора текста"
-                      className="bg-transparent border-none p-0 h-auto text-sm text-white placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-                  </div>
-                  <span className="text-xs text-slate-500 shrink-0">Автор текста</span>
                 </div>
               </section>
 
@@ -419,7 +431,7 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
               {/* Аудиофайлы с drag & drop */}
               <section ref={sectionRefs.audio} className="bg-[#1a2636] border border-white/5 rounded-2xl p-5 space-y-4">
                 <h4 className="font-semibold text-sm">Аудиофайлы</h4>
-                <input ref={trackRef} type="file" accept="audio/*" multiple onChange={e => addAudioFiles(e.target.files)} className="hidden" />
+                <input ref={trackRef} type="file" accept=".mp3,.wav,.flac,.m4a,.aac,.ogg,.aiff,.aif,audio/*" multiple onChange={e => addAudioFiles(e.target.files)} className="hidden" />
 
                 {/* Зона drag & drop */}
                 <div
@@ -435,7 +447,7 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                     <Icon name="Upload" size={20} className="text-slate-500" />
                   </div>
                   <p className="text-sm text-slate-300 font-medium">Перетащи аудиофайлы или нажми</p>
-                  <p className="text-xs text-slate-500 mt-1">WAV · 16 bit · 44.1 kHz · Stereo</p>
+                  <p className="text-xs text-slate-500 mt-1">MP3 · WAV · FLAC · M4A · AAC · AIFF</p>
                 </div>
 
                 {/* Список файлов */}
