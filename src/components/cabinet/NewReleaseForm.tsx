@@ -431,75 +431,168 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
           {/* ШАГ 4: ПРОВЕРКА */}
           {step === "review" && (
             <>
-              <div><h3 className="font-semibold text-base">Проверка</h3><p className="text-slate-500 text-xs mt-0.5">Убедитесь что всё верно перед отправкой</p></div>
+              {/* ── Информация ── */}
+              <section ref={sectionRefs.final} className="bg-[#1a2636] border border-white/5 rounded-2xl p-5 space-y-5">
+                <h3 className="font-bold text-lg">Информация</h3>
 
-              <section ref={sectionRefs.final} className="bg-[#1a2636] border border-white/5 rounded-2xl p-5 space-y-4">
-                <div className="flex items-start gap-4">
+                {/* Обложка + название */}
+                <div className="flex items-center gap-4">
                   {coverPreview
                     ? <img src={coverPreview} alt="cover" className="w-20 h-20 rounded-xl object-cover shrink-0" />
-                    : <div className="w-20 h-20 rounded-xl bg-[#0f1923] flex items-center justify-center shrink-0"><Icon name="Music" size={24} className="text-slate-600" /></div>
+                    : <div className="w-20 h-20 rounded-xl bg-[#0f1923] border border-white/10 flex items-center justify-center shrink-0"><Icon name="Music2" size={28} className="text-slate-600" /></div>
                   }
                   <div>
-                    <p className="font-bold text-lg">{form.title || "—"}</p>
-                    <p className="text-[#f5a623] text-sm">{form.artist_name || "—"}</p>
-                    <p className="text-slate-500 text-xs mt-1">{form.type} · {form.genre || "Жанр не указан"}</p>
+                    <p className="font-bold text-xl leading-tight">{form.title || "—"}</p>
+                    <p className="text-slate-400 text-base mt-0.5">{form.artist_name || "—"}</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/10">
+                {/* Тип / Жанр / Язык */}
+                <div className="flex gap-6 pt-1">
                   {[
-                    { label: "Лейбл",       value: form.label || "Не указан" },
-                    { label: "Дата релиза", value: form.release_date || "Не указана" },
-                    { label: "UPC",         value: form.upc || "Автогенерация" },
-                    { label: "Язык",        value: form.language },
-                    { label: "Треки",       value: trackFiles.length > 0 ? `${trackFiles.length} файл(ов)` : "Не загружены" },
-                    { label: "Площадки",    value: form.platforms.length > 0 ? `${form.platforms.length} выбрано` : "Не выбраны" },
+                    { label: "Тип",           value: form.type },
+                    { label: "Жанр",          value: form.genre || "—" },
+                    { label: "Язык названия", value: form.language },
                   ].map(({ label, value }) => (
                     <div key={label}>
-                      <p className="text-xs text-slate-500">{label}</p>
-                      <p className="text-sm text-white mt-0.5">{value}</p>
+                      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+                      <p className="text-sm font-medium text-white">{value}</p>
                     </div>
                   ))}
                 </div>
 
-                {form.platforms.length > 0 && (
-                  <div className="pt-3 border-t border-white/10">
-                    <p className="text-xs text-slate-500 mb-2">Площадки</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {form.platforms.map(p => <span key={p} className="text-xs bg-[#f5a623]/10 text-[#f5a623] px-2 py-1 rounded-full">{p}</span>)}
+                <div className="h-px bg-white/5" />
+
+                {/* Лейбл / UPC */}
+                <div className="flex gap-8">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-0.5">Лейбл / копирайт</p>
+                    <p className="text-sm font-medium text-white">{form.label || form.copyright || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-0.5">UPC</p>
+                    <p className="text-sm font-medium text-white">{form.upc || "Автоматически"}</p>
+                  </div>
+                </div>
+
+                {/* Дата */}
+                <div>
+                  <p className="text-xs text-slate-500 mb-0.5">Оригинальная дата релиза</p>
+                  <p className="text-sm font-medium text-white">
+                    {form.release_date
+                      ? new Date(form.release_date).toLocaleDateString("ru", { day: "2-digit", month: "2-digit", year: "numeric" })
+                      : "Автоматически"}
+                  </p>
+                </div>
+              </section>
+
+              {/* ── Участники ── */}
+              <section className="bg-[#1a2636] border border-white/5 rounded-2xl p-5 space-y-4">
+                <h3 className="font-bold text-lg">Участники</h3>
+                <div className="space-y-3">
+                  {[
+                    { name: form.artist_name || "—", role: "Основной" },
+                  ].map((p, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-[#0f1923] border border-white/10 flex items-center justify-center shrink-0">
+                        <Icon name="User" size={20} className="text-slate-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-white">{p.name}</span>
+                        <span className="text-sm text-slate-500 ml-2">{p.role}</span>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* ── Треклист ── */}
+              <section className="bg-[#1a2636] border border-white/5 rounded-2xl p-5 space-y-4">
+                <h3 className="font-bold text-lg">Треклист</h3>
+                {trackFiles.length === 0 ? (
+                  <div className="flex items-center gap-3 py-2">
+                    <div className="w-10 h-10 rounded-full bg-[#0f1923] flex items-center justify-center shrink-0">
+                      <Icon name="Music2" size={16} className="text-slate-600" />
+                    </div>
+                    <p className="text-slate-500 text-sm">Треки не добавлены</p>
+                    <button onClick={() => setStep("tracklist")} className="ml-auto text-xs text-[#f5a623] hover:opacity-80">Добавить →</button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {trackFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <span className="text-sm text-slate-500 w-5 shrink-0">{i + 1}.</span>
+                        <div className="w-10 h-10 rounded-full bg-[#f5a623]/20 flex items-center justify-center shrink-0">
+                          <Icon name="Play" size={14} className="text-[#f5a623] ml-0.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">
+                            {f.name.replace(/\.[^.]+$/, "")}
+                          </p>
+                          <p className="text-xs text-slate-500">{form.artist_name || "—"}</p>
+                        </div>
+                        <Icon name="ChevronDown" size={16} className="text-slate-500 shrink-0" />
+                      </div>
+                    ))}
                   </div>
                 )}
               </section>
 
-              {/* Чеклист */}
-              <section className="bg-[#1a2636] border border-white/5 rounded-2xl p-5">
-                <h4 className="font-semibold text-sm mb-4">Чеклист готовности</h4>
-                <div className="space-y-3">
-                  {[
-                    { ok: !!form.title.trim(),          label: "Название релиза",       step: "release"   as Step },
-                    { ok: !!form.artist_name.trim(),    label: "Исполнитель указан",    step: "release"   as Step },
-                    { ok: !!form.genre,                 label: "Жанр выбран",           step: "release"   as Step },
-                    { ok: !!coverFile,                  label: "Обложка загружена",     step: "tracklist" as Step },
-                    { ok: trackFiles.length > 0,        label: "Аудиофайлы добавлены",  step: "tracklist" as Step },
-                    { ok: form.platforms.length > 0,    label: "Площадки выбраны",      step: "platforms" as Step },
-                    { ok: !!form.release_date,          label: "Дата релиза указана",   step: "platforms" as Step },
-                  ].map(({ ok, label, step: s }) => (
-                    <div key={label} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ${ok ? "bg-green-500/20" : "bg-white/5"}`}>
-                          {ok ? <Icon name="Check" size={11} className="text-green-400" /> : <Icon name="Minus" size={11} className="text-slate-600" />}
-                        </div>
-                        <span className={`text-sm ${ok ? "text-slate-300" : "text-slate-500"}`}>{label}</span>
-                      </div>
-                      {!ok && (
-                        <button onClick={() => setStep(s)} className="text-xs text-[#f5a623] hover:opacity-80 transition-opacity">
-                          Заполнить →
-                        </button>
-                      )}
-                    </div>
-                  ))}
+              {/* ── Настройки ── */}
+              <section className="bg-[#1a2636] border border-white/5 rounded-2xl p-5 space-y-4">
+                <h3 className="font-bold text-lg">Настройки</h3>
+                <div className="flex gap-8">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-0.5">Площадки</p>
+                    <p className="text-sm font-medium text-white">
+                      {form.platforms.length === 0 ? "—" : form.platforms.length === ALL_PLATFORMS.length ? "Все" : `${form.platforms.length} выбрано`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-0.5">Страны</p>
+                    <p className="text-sm font-medium text-white">Все</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-0.5">Дата релиза</p>
+                    <p className="text-sm font-medium text-white">
+                      {form.release_date
+                        ? new Date(form.release_date).toLocaleDateString("ru", { day: "2-digit", month: "2-digit", year: "numeric" })
+                        : "Автоматически"}
+                    </p>
+                  </div>
                 </div>
+
+                {form.platforms.length > 0 && form.platforms.length < ALL_PLATFORMS.length && (
+                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/5">
+                    {form.platforms.map(p => (
+                      <span key={p} className="text-xs bg-[#0f1923] text-slate-300 px-2.5 py-1 rounded-full border border-white/10">{p}</span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Дополнительные настройки */}
+                {trackFiles.length > 0 && (
+                  <>
+                    <div className="h-px bg-white/5" />
+                    <h4 className="font-bold text-base">Дополнительные настройки</h4>
+                    <p className="text-xs text-slate-500 -mt-2">TikTok</p>
+                    <div className="space-y-2">
+                      {trackFiles.map((f, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <span className="text-sm text-slate-500 w-5 shrink-0">{i + 1}.</span>
+                          <div className="w-10 h-10 rounded-full bg-[#f5a623]/20 flex items-center justify-center shrink-0">
+                            <Icon name="Play" size={14} className="text-[#f5a623] ml-0.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{f.name.replace(/\.[^.]+$/, "")}</p>
+                            <p className="text-xs text-slate-500">{form.artist_name || "—"}</p>
+                          </div>
+                          <Icon name="ChevronDown" size={16} className="text-slate-500 shrink-0" />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </section>
 
               {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">{error}</p>}
