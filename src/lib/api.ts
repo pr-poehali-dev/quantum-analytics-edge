@@ -2,6 +2,7 @@ const BASE = "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f
 const TRACKS = "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2";
 const AUTH = "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c";
 const SMARTLINK_BASE = "https://functions.poehali.dev/a881dc8f-d2db-4da3-b755-0d1aa6cd08a0";
+const BEATSTORE_BASE = "https://functions.poehali.dev/76bda3d9-5afb-4469-b432-9f145059aa2e";
 
 function token() { return localStorage.getItem("ks_token") || ""; }
 function headers() { return { "Content-Type": "application/json", "X-Session-Token": token() }; }
@@ -112,5 +113,16 @@ export const api = {
     get: (releaseId: number) => fetch(`${BASE}?action=smart-link&release_id=${releaseId}`, { headers: headers() }).then(r => r.json()),
     save: (data: object) => fetch(`${BASE}?action=smart-link`, { method: "POST", headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     public: (slug: string) => fetch(`${SMARTLINK_BASE}?slug=${slug}`).then(r => r.json()),
+  },
+  beatstore: {
+    listBeats: (params?: string) => fetch(`${BEATSTORE_BASE}?action=list-beats${params || ''}`).then(r => r.json()),
+    uploadBeat: (data: object) => fetch(`${BEATSTORE_BASE}?action=upload-beat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+    playBeat: (id: number) => fetch(`${BEATSTORE_BASE}?action=play-beat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).then(r => r.json()),
+    delBeat: (id: number) => fetch(`${BEATSTORE_BASE}?action=del-beat`, { method: 'POST', headers: headers(), body: JSON.stringify({ id }) }).then(r => r.json()),
+    listLabelReleases: () => fetch(`${BEATSTORE_BASE}?action=list-label-releases`).then(r => r.json()),
+    adminLabelReleases: () => fetch(`${BEATSTORE_BASE}?action=admin-label-releases`, { headers: headers() }).then(r => r.json()),
+    addLabelRelease: (data: object) => fetch(`${BEATSTORE_BASE}?action=add-label-release`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+    updateLabelRelease: (data: object) => fetch(`${BEATSTORE_BASE}?action=update-label-release`, { method: 'PUT', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+    delLabelRelease: (id: number) => fetch(`${BEATSTORE_BASE}?action=del-label-release`, { method: 'POST', headers: headers(), body: JSON.stringify({ id }) }).then(r => r.json()),
   },
 };

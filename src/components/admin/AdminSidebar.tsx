@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 
-type SideTab = "artists" | "create-user";
+type SideTab = "artists" | "create-user" | "label-news";
 
 interface Artist { id: number; email: string; artist_name: string; created_at: string; }
 
@@ -27,6 +27,12 @@ export default function AdminSidebar({ sideTab, setSideTab, artists, selectedId,
           className={`flex-1 py-2.5 text-xs font-medium transition-colors ${sideTab === "artists" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-zinc-300"}`}
         >
           Артисты
+        </button>
+        <button
+          onClick={() => setSideTab("label-news")}
+          className={`flex-1 py-2.5 text-xs font-medium transition-colors ${sideTab === "label-news" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-zinc-300"}`}
+        >
+          Новинки
         </button>
         <button
           onClick={() => setSideTab("create-user")}

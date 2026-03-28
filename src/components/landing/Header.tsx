@@ -54,6 +54,16 @@ const Header = () => {
               </a>
             </li>
             <li>
+              <a href="/beatstore" className="text-white hover:text-purple-400 transition-colors">
+                BeatStore
+              </a>
+            </li>
+            <li>
+              <a href="/label-news" className="text-white hover:text-purple-400 transition-colors">
+                Новинки
+              </a>
+            </li>
+            <li>
               <button
                 onClick={() => scrollToSection("about")}
                 className="text-white hover:text-purple-400 transition-colors"

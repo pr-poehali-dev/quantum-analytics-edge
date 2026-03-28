@@ -13,6 +13,8 @@ import LiveRadio from "./pages/LiveRadio";
 import Services from "./pages/Services";
 import NotFound from "./pages/NotFound";
 import SmartLink from "./pages/SmartLink";
+import BeatStore from "./pages/BeatStore";
+import LabelNews from "./pages/LabelNews";
 import { AuthProvider } from "./contexts/AuthContext";
 import { api } from "./lib/api";
 
@@ -48,6 +50,8 @@ const App = () => (
             <Route path="/radio" element={<LiveRadio />} />
             <Route path="/services" element={<Services />} />
             <Route path="/r/:slug" element={<SmartLink />} />
+            <Route path="/beatstore" element={<BeatStore />} />
+            <Route path="/label-news" element={<LabelNews />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
