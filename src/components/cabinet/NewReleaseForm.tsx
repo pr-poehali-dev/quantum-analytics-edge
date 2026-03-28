@@ -63,6 +63,17 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
     composer: "", lyricist: "",
   });
 
+  const [featArtists, setFeatArtists] = useState<string[]>([]);
+  const [featInput, setFeatInput] = useState("");
+
+  const addFeat = () => {
+    const name = featInput.trim();
+    if (!name || featArtists.includes(name)) return;
+    setFeatArtists(prev => [...prev, name]);
+    setFeatInput("");
+  };
+  const removeFeat = (i: number) => setFeatArtists(prev => prev.filter((_, j) => j !== i));
+
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [trackFiles, setTrackFiles] = useState<File[]>([]);
@@ -150,7 +161,7 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
       title: form.title, artist_name: form.artist_name,
       upc: form.upc || undefined, genre: form.genre || undefined,
       release_date: form.release_date || undefined,
-      notes: [form.notes, form.copyright, form.platforms.join(", "), form.lyrics].filter(Boolean).join("\n---\n") || undefined,
+      notes: [form.notes, form.copyright, form.platforms.join(", "), form.lyrics, featArtists.length ? `feat: ${featArtists.join(", ")}` : "", form.composer ? `composer: ${form.composer}` : "", form.lyricist ? `lyricist: ${form.lyricist}` : ""].filter(Boolean).join("\n---\n") || undefined,
       cover_url: coverData.cover_url,
       type: form.type, label: form.label || undefined,
     });
@@ -259,6 +270,48 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                     />
                   </div>
                   <span className="text-xs text-slate-500 shrink-0">Основной</span>
+                </div>
+
+                {/* Feat. артисты */}
+                <div className="space-y-2">
+                  {featArtists.map((name, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3 group">
+                      <div className="w-9 h-9 rounded-lg bg-[#f5a623]/10 flex items-center justify-center shrink-0">
+                        <Icon name="Mic2" size={16} className="text-[#f5a623]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-slate-500 mb-0.5">Feat. исполнитель</p>
+                        <p className="text-sm text-white">{name}</p>
+                      </div>
+                      <span className="text-xs text-slate-500 shrink-0 mr-2">feat.</span>
+                      <button onClick={() => removeFeat(i)} className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                        <Icon name="X" size={14} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Добавить feat. */}
+                  <div className="flex gap-2">
+                    <div className="flex-1 flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3 border border-dashed border-white/10 focus-within:border-[#f5a623]/30 transition-colors">
+                      <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                        <Icon name="UserPlus" size={16} className="text-slate-500" />
+                      </div>
+                      <Input
+                        value={featInput}
+                        onChange={e => setFeatInput(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && addFeat()}
+                        placeholder="Добавить feat. исполнителя..."
+                        className="bg-transparent border-none p-0 h-auto text-sm text-white placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+                    <button
+                      onClick={addFeat}
+                      disabled={!featInput.trim()}
+                      className="w-11 h-11 my-auto rounded-xl bg-[#f5a623]/10 text-[#f5a623] flex items-center justify-center hover:bg-[#f5a623]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                    >
+                      <Icon name="Plus" size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Композитор */}
@@ -541,6 +594,7 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                 <div className="space-y-3">
                   {[
                     { name: form.artist_name, role: "Основной",    icon: "Mic2",    color: "bg-[#f5a623]/10 text-[#f5a623]" },
+                    ...featArtists.map(n => ({ name: n, role: "feat.",           icon: "Mic2",    color: "bg-[#f5a623]/10 text-[#f5a623]" })),
                     { name: form.composer,    role: "Композитор",  icon: "Music",   color: "bg-blue-500/10 text-blue-400" },
                     { name: form.lyricist,    role: "Автор текста", icon: "PenLine", color: "bg-purple-500/10 text-purple-400" },
                   ].filter(p => p.name.trim()).map((p, i) => (
@@ -554,7 +608,7 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                       </div>
                     </div>
                   ))}
-                  {!form.artist_name.trim() && !form.composer.trim() && !form.lyricist.trim() && (
+                  {!form.artist_name.trim() && !form.composer.trim() && !form.lyricist.trim() && featArtists.length === 0 && (
                     <p className="text-slate-500 text-sm">Участники не указаны</p>
                   )}
                 </div>
