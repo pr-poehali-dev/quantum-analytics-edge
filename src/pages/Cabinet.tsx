@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 import AudioWavePlayer from "@/components/AudioWavePlayer";
+import NewReleaseForm from "@/components/cabinet/NewReleaseForm";
 
 type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution" | "documents";
 
@@ -83,6 +84,7 @@ export default function Cabinet() {
   const [generatingCover, setGeneratingCover] = useState(false);
   const [generatedCoverUrl, setGeneratedCoverUrl] = useState<string | null>(null);
   const [coverGenError, setCoverGenError] = useState("");
+  const [showNewRelease, setShowNewRelease] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
@@ -369,6 +371,28 @@ export default function Cabinet() {
           {/* ===== RELEASES (Моя музыка) ===== */}
           {tab === "releases" && (
             <div>
+              {showNewRelease ? (
+                <NewReleaseForm
+                  userArtistName={user?.artist_name}
+                  onCancel={() => setShowNewRelease(false)}
+                  onCreated={(release) => {
+                    setReleases((prev) => [release, ...prev]);
+                    setShowNewRelease(false);
+                  }}
+                />
+              ) : (
+              <>
+              {/* Кнопка нового релиза */}
+              <div className="flex items-center justify-between mb-5">
+                <div />
+                <Button
+                  onClick={() => setShowNewRelease(true)}
+                  className="bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-semibold"
+                >
+                  <Icon name="Plus" size={16} className="mr-2" />
+                  Новый релиз
+                </Button>
+              </div>
               {/* Filters */}
               <div className="flex gap-2 mb-5 flex-wrap">
                 {RELEASE_FILTERS.map((f) => (
@@ -482,6 +506,8 @@ export default function Cabinet() {
                     </div>
                   ))}
                 </div>
+              )}
+              </>
               )}
             </div>
           )}
