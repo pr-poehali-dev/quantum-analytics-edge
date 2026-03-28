@@ -60,6 +60,7 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
     language: "Русский", genre: "", subgenre: "",
     label: "", upc: "", release_date: "", notes: "", copyright: "",
     platforms: [] as string[], lyrics: "",
+    composer: "", lyricist: "",
   });
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -241,10 +242,58 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
               </section>
 
               <section ref={sectionRefs.persons} className="bg-[#1a2636] border border-white/5 rounded-2xl p-5 space-y-4">
-                <div><h4 className="font-semibold text-sm">Персоны и роли</h4><p className="text-slate-500 text-xs mt-0.5">Укажите исполнителя</p></div>
-                <F label="Исполнитель" required>
-                  <Input value={form.artist_name} onChange={e => setForm({ ...form, artist_name: e.target.value })} placeholder="Имя артиста" className={ic} />
-                </F>
+                <div><h4 className="font-semibold text-sm">Персоны и роли</h4><p className="text-slate-500 text-xs mt-0.5">Укажите всех участников релиза</p></div>
+
+                {/* Исполнитель */}
+                <div className="flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3">
+                  <div className="w-9 h-9 rounded-lg bg-[#f5a623]/10 flex items-center justify-center shrink-0">
+                    <Icon name="Mic2" size={16} className="text-[#f5a623]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-500 mb-1">Исполнитель <span className="text-red-400">*</span></p>
+                    <Input
+                      value={form.artist_name}
+                      onChange={e => setForm({ ...form, artist_name: e.target.value })}
+                      placeholder="Имя артиста"
+                      className="bg-transparent border-none p-0 h-auto text-sm text-white placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 shrink-0">Основной</span>
+                </div>
+
+                {/* Композитор */}
+                <div className="flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3">
+                  <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                    <Icon name="Music" size={16} className="text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-500 mb-1">Композитор</p>
+                    <Input
+                      value={form.composer}
+                      onChange={e => setForm({ ...form, composer: e.target.value })}
+                      placeholder="Имя композитора"
+                      className="bg-transparent border-none p-0 h-auto text-sm text-white placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 shrink-0">Композитор</span>
+                </div>
+
+                {/* Автор текста */}
+                <div className="flex items-center gap-3 bg-[#0f1923] rounded-xl px-4 py-3">
+                  <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+                    <Icon name="PenLine" size={16} className="text-purple-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-500 mb-1">Автор текста</p>
+                    <Input
+                      value={form.lyricist}
+                      onChange={e => setForm({ ...form, lyricist: e.target.value })}
+                      placeholder="Имя автора текста"
+                      className="bg-transparent border-none p-0 h-auto text-sm text-white placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 shrink-0">Автор текста</span>
+                </div>
               </section>
 
               <section ref={sectionRefs.genre} className="bg-[#1a2636] border border-white/5 rounded-2xl p-5 space-y-4">
@@ -491,11 +540,13 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                 <h3 className="font-bold text-lg">Участники</h3>
                 <div className="space-y-3">
                   {[
-                    { name: form.artist_name || "—", role: "Основной" },
-                  ].map((p, i) => (
+                    { name: form.artist_name, role: "Основной",    icon: "Mic2",    color: "bg-[#f5a623]/10 text-[#f5a623]" },
+                    { name: form.composer,    role: "Композитор",  icon: "Music",   color: "bg-blue-500/10 text-blue-400" },
+                    { name: form.lyricist,    role: "Автор текста", icon: "PenLine", color: "bg-purple-500/10 text-purple-400" },
+                  ].filter(p => p.name.trim()).map((p, i) => (
                     <div key={i} className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-[#0f1923] border border-white/10 flex items-center justify-center shrink-0">
-                        <Icon name="User" size={20} className="text-slate-500" />
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${p.color}`}>
+                        <Icon name={p.icon} size={20} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-white">{p.name}</span>
@@ -503,6 +554,9 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                       </div>
                     </div>
                   ))}
+                  {!form.artist_name.trim() && !form.composer.trim() && !form.lyricist.trim() && (
+                    <p className="text-slate-500 text-sm">Участники не указаны</p>
+                  )}
                 </div>
               </section>
 
