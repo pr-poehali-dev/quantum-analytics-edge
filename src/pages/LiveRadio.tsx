@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 import { api } from "@/lib/api";
 
@@ -26,6 +26,7 @@ const artists = [
 
 interface LikeInfo { total: number; liked: boolean; }
 interface TopEntry { artist_name: string; likes: number; }
+interface RadioTrack { id: number; title: string; artist: string | null; file_url: string; }
 
 export default function LiveRadio() {
   const [activeWidget, setActiveWidget] = useState<string | null>(null);
@@ -33,12 +34,87 @@ export default function LiveRadio() {
   const [top, setTop] = useState<TopEntry[]>([]);
   const sessionId = getSessionId();
 
+  // Радио плейлист
+  const [radioTracks, setRadioTracks] = useState<RadioTrack[]>([]);
+  const [currentTrackIdx, setCurrentTrackIdx] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     api.radio.top(sessionId).then((res) => {
       if (res.all_likes) setLikes(res.all_likes);
       if (res.top) setTop(res.top);
     }).catch(() => null);
+
+    api.radio.getTracks().then((res) => {
+      if (res.tracks?.length) setRadioTracks(res.tracks);
+    }).catch(() => null);
   }, []);
+
+  const playTrack = useCallback((idx: number, tracks: RadioTrack[]) => {
+    if (!tracks.length) return;
+    const track = tracks[idx];
+    if (!track) return;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.ontimeupdate = null;
+      audioRef.current.onloadedmetadata = null;
+    }
+    const audio = new Audio(track.file_url);
+    audioRef.current = audio;
+    audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
+    audio.onloadedmetadata = () => setDuration(audio.duration);
+    audio.onended = () => {
+      const nextIdx = (idx + 1) % tracks.length;
+      setCurrentTrackIdx(nextIdx);
+      playTrack(nextIdx, tracks);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (!radioTracks.length) return;
+    if (isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => null);
+      } else {
+        playTrack(currentTrackIdx, radioTracks);
+      }
+    }
+  };
+
+  const skipNext = () => {
+    if (!radioTracks.length) return;
+    const nextIdx = (currentTrackIdx + 1) % radioTracks.length;
+    setCurrentTrackIdx(nextIdx);
+    playTrack(nextIdx, radioTracks);
+  };
+
+  const skipPrev = () => {
+    if (!radioTracks.length) return;
+    const prevIdx = (currentTrackIdx - 1 + radioTracks.length) % radioTracks.length;
+    setCurrentTrackIdx(prevIdx);
+    playTrack(prevIdx, radioTracks);
+  };
+
+  const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const t = parseFloat(e.target.value);
+    if (audioRef.current) audioRef.current.currentTime = t;
+    setCurrentTime(t);
+  };
+
+  const fmtTime = (s: number) => {
+    if (!isFinite(s)) return "0:00";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
 
   const handleLike = async (artistName: string) => {
     const current = likes[artistName];
@@ -168,6 +244,72 @@ export default function LiveRadio() {
             );
           })}
         </div>
+
+        {/* Плеер радио (треки из базы) */}
+        {radioTracks.length > 0 && (
+          <div className="mb-10 bg-gradient-to-r from-zinc-900 to-black border border-white/10 rounded-2xl overflow-hidden">
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-red-400 text-xs font-medium uppercase tracking-wider">Радио KS</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-[#f5a623]/10 flex items-center justify-center shrink-0">
+                  <Icon name="Music2" size={24} className={`text-[#f5a623] ${isPlaying ? "animate-pulse" : ""}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white truncate">{radioTracks[currentTrackIdx]?.title || "—"}</p>
+                  <p className="text-zinc-400 text-sm truncate">{radioTracks[currentTrackIdx]?.artist || "KALASHNIKOV SOUND"}</p>
+                </div>
+                <div className="text-xs text-zinc-500 shrink-0">{currentTrackIdx + 1} / {radioTracks.length}</div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2">
+                <span className="text-xs text-zinc-500 w-8 text-right shrink-0">{fmtTime(currentTime)}</span>
+                <input
+                  type="range" min={0} max={duration || 0} value={currentTime} step={0.1}
+                  onChange={seek}
+                  className="flex-1 h-1.5 rounded-full accent-[#f5a623] cursor-pointer"
+                />
+                <span className="text-xs text-zinc-500 w-8 shrink-0">{fmtTime(duration)}</span>
+              </div>
+
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <button onClick={skipPrev} className="p-2 text-zinc-400 hover:text-white transition-colors">
+                  <Icon name="SkipBack" size={20} />
+                </button>
+                <button
+                  onClick={togglePlay}
+                  className="w-12 h-12 rounded-full bg-[#f5a623] hover:bg-[#f5a623]/80 text-black flex items-center justify-center transition-colors"
+                >
+                  <Icon name={isPlaying ? "Pause" : "Play"} size={22} />
+                </button>
+                <button onClick={skipNext} className="p-2 text-zinc-400 hover:text-white transition-colors">
+                  <Icon name="SkipForward" size={20} />
+                </button>
+                <div className="ml-2 flex items-center gap-1 text-zinc-500 text-xs">
+                  <Icon name="Repeat" size={14} />
+                  <span>повтор</span>
+                </div>
+              </div>
+
+              {/* Список треков */}
+              <div className="mt-4 pt-4 border-t border-white/10 space-y-1 max-h-40 overflow-y-auto">
+                {radioTracks.map((t, i) => (
+                  <button
+                    key={t.id}
+                    onClick={() => { setCurrentTrackIdx(i); playTrack(i, radioTracks); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${i === currentTrackIdx ? "bg-[#f5a623]/10 text-[#f5a623]" : "text-zinc-400 hover:bg-white/5 hover:text-white"}`}
+                  >
+                    <span className="text-xs w-5 text-center shrink-0">{i === currentTrackIdx && isPlaying ? <Icon name="Volume2" size={12} className="inline" /> : i + 1}</span>
+                    <span className="text-sm truncate">{t.title}</span>
+                    {t.artist && <span className="text-xs text-zinc-600 shrink-0 truncate max-w-[100px]">{t.artist}</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-zinc-900 border border-white/10 rounded-2xl p-8 text-center">
           <div className="flex items-center justify-center mb-4">

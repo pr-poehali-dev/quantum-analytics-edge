@@ -727,4 +727,89 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             return ok({'ok': True, 'slug': slug})
 
+    # === RADIO TRACKS (управление плейлистом радио) ===
+
+    # Список треков радио (публичный)
+    if action == 'radio-tracks' and method == 'GET':
+        cur.execute(f"SELECT id, title, artist, file_url, file_name, file_size, sort_order, is_active, created_at FROM {schema}.radio_tracks WHERE is_active = TRUE ORDER BY sort_order ASC, created_at ASC")
+        items = [{'id': r[0], 'title': r[1], 'artist': r[2], 'file_url': r[3], 'file_name': r[4], 'file_size': r[5], 'sort_order': r[6], 'is_active': r[7], 'created_at': str(r[8])} for r in cur.fetchall()]
+        return ok({'tracks': items})
+
+    # Все треки радио включая неактивные (только admin)
+    if action == 'radio-tracks-all' and method == 'GET':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        cur.execute(f"SELECT id, title, artist, file_url, file_name, file_size, sort_order, is_active, created_at FROM {schema}.radio_tracks ORDER BY sort_order ASC, created_at ASC")
+        items = [{'id': r[0], 'title': r[1], 'artist': r[2], 'file_url': r[3], 'file_name': r[4], 'file_size': r[5], 'sort_order': r[6], 'is_active': r[7], 'created_at': str(r[8])} for r in cur.fetchall()]
+        return ok({'tracks': items})
+
+    # Загрузить трек радио (только admin)
+    if action == 'upload-radio-track' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        title = str(body.get('title', '')).strip()
+        artist = str(body.get('artist', '')).strip()
+        file_data = body.get('file_data', '')
+        file_name = str(body.get('file_name', 'track.mp3')).strip()
+        sort_order = int(body.get('sort_order', 0))
+        if not title or not file_data:
+            return err(400, 'Укажите название и файл')
+        file_bytes = base64.b64decode(file_data)
+        file_size = len(file_bytes)
+        ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'mp3'
+        audio_types = {'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'flac': 'audio/flac', 'm4a': 'audio/mp4', 'aac': 'audio/aac', 'ogg': 'audio/ogg'}
+        key = f'radio/{uuid.uuid4()}.{ext}'
+        s3 = boto3.client('s3', endpoint_url='https://bucket.poehali.dev',
+                          aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                          aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+        s3.put_object(Bucket='files', Key=key, Body=file_bytes, ContentType=audio_types.get(ext, 'audio/mpeg'))
+        file_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+        cur.execute(f"INSERT INTO {schema}.radio_tracks (title, artist, file_url, file_name, file_size, sort_order) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id, created_at",
+                    (title, artist or None, file_url, file_name, file_size, sort_order))
+        row = cur.fetchone()
+        conn.commit()
+        return ok({'track': {'id': row[0], 'title': title, 'artist': artist, 'file_url': file_url, 'file_name': file_name, 'file_size': file_size, 'sort_order': sort_order, 'is_active': True, 'created_at': str(row[1])}})
+
+    # Обновить трек радио (только admin)
+    if action == 'update-radio-track' and method == 'PUT':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        track_id = body.get('id')
+        if not track_id:
+            return err(400, 'Укажите id')
+        fields = {}
+        if 'title' in body: fields['title'] = body['title']
+        if 'artist' in body: fields['artist'] = body['artist']
+        if 'sort_order' in body: fields['sort_order'] = int(body['sort_order'])
+        if 'is_active' in body: fields['is_active'] = bool(body['is_active'])
+        if not fields:
+            return err(400, 'Нечего обновлять')
+        set_sql = ', '.join(f"{k} = %s" for k in fields)
+        cur.execute(f"UPDATE {schema}.radio_tracks SET {set_sql} WHERE id = %s", list(fields.values()) + [track_id])
+        conn.commit()
+        return ok({'ok': True})
+
+    # Удалить трек радио (только admin)
+    if action == 'del-radio-track' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        cur.execute(f"DELETE FROM {schema}.radio_tracks WHERE id = %s", (body.get('id'),))
+        conn.commit()
+        return ok({'ok': True})
+
+    # === RADIO ARTISTS (артисты на странице радио) ===
+
+    # Список артистов для Radio страницы (публичный)
+    if action == 'radio-artists' and method == 'GET':
+        cur.execute(f"SELECT id, name, url, photo_url, sort_order, is_visible, description, instagram_url, vk_url FROM {schema}.label_artists WHERE is_visible = TRUE ORDER BY sort_order ASC, name ASC")
+        items = [{'id': r[0], 'name': r[1], 'url': r[2], 'photo_url': r[3], 'sort_order': r[4], 'is_visible': r[5], 'description': r[6], 'instagram_url': r[7], 'vk_url': r[8]} for r in cur.fetchall()]
+        return ok({'artists': items})
+
     return err(404, 'Not found')

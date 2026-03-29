@@ -51,19 +51,16 @@ def verify_token(token: str) -> bool:
     if not db_url or not token:
         return False
     try:
-        import pg8000.native as pg
-        parts = urllib.parse.urlparse(db_url)
-        conn = pg.Connection(
-            user=parts.username,
-            password=parts.password,
-            host=parts.hostname,
-            port=parts.port or 5432,
-            database=parts.path.lstrip('/'),
+        import psycopg2
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT u.id FROM {schema}.sessions s JOIN {schema}.users u ON u.id = s.user_id WHERE s.token = %s AND s.expires_at > NOW()",
+            (token,)
         )
-        result = conn.run(
-            f"SELECT u.id FROM {schema}.sessions s JOIN {schema}.users u ON u.id = s.user_id WHERE s.token = :token AND s.expires_at > NOW()",
-            token=token,
-        )
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
         return bool(result)
     except Exception:
         return True

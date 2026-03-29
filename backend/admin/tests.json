@@ -21,6 +21,14 @@
       "expectedStatus": 401,
       "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Radio tracks — public GET",
+      "method": "GET",
+      "path": "/?action=radio-tracks",
+      "expectedStatus": 200,
+      "expectedBody": {"tracks": []},
+      "bodyMatcher": "partial"
     }
   ]
 }

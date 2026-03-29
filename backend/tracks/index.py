@@ -45,6 +45,57 @@ def handler(event: dict, context) -> dict:
 
     user_id, role = user
 
+    params = event.get('queryStringParameters') or {}
+    action = params.get('action', '')
+
+    # Загрузка обложки релиза (multipart или base64)
+    if method == 'POST' and action == 'upload-cover':
+        import re
+        body_raw = event.get('body') or ''
+        is_base64 = event.get('isBase64Encoded', False)
+
+        # Попытка получить файл из multipart/form-data
+        content_type = (event.get('headers') or {}).get('content-type', '') or (event.get('headers') or {}).get('Content-Type', '')
+        img_bytes = None
+
+        if 'multipart/form-data' in content_type and 'boundary=' in content_type:
+            boundary = content_type.split('boundary=')[-1].strip()
+            if is_base64:
+                raw_bytes = base64.b64decode(body_raw)
+            else:
+                raw_bytes = body_raw.encode('latin-1') if isinstance(body_raw, str) else body_raw
+            # Найти содержимое файла после двойного CRLF
+            sep = ('--' + boundary).encode()
+            parts = raw_bytes.split(sep)
+            for part in parts:
+                if b'filename=' in part:
+                    header_end = part.find(b'\r\n\r\n')
+                    if header_end != -1:
+                        img_bytes = part[header_end + 4:].rstrip(b'\r\n--')
+                        break
+        else:
+            # Попытка получить из JSON body
+            try:
+                jbody = json.loads(body_raw)
+                fd = jbody.get('file_data', '')
+                if fd:
+                    img_bytes = base64.b64decode(fd)
+            except Exception:
+                pass
+
+        if not img_bytes:
+            return json_response(400, {'error': 'Файл обложки не найден в запросе'})
+
+        s3 = boto3.client('s3',
+            endpoint_url='https://bucket.poehali.dev',
+            aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+            aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+        )
+        key = f'covers/{user_id}/{datetime.now().timestamp()}.jpg'
+        s3.put_object(Bucket='files', Key=key, Body=img_bytes, ContentType='image/jpeg')
+        cover_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+        return json_response(200, {'cover_url': cover_url})
+
     # Загрузка трека
     if method == 'POST':
         body = json.loads(event.get('body') or '{}')

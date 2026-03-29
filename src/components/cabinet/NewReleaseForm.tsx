@@ -534,7 +534,10 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
                 <F label="Текст трека (необязательно)">
                   <textarea
                     value={form.lyrics} onChange={e => setForm({ ...form, lyrics: e.target.value })}
+                    onFocus={e => { e.stopPropagation(); }}
+                    onTouchStart={e => e.stopPropagation()}
                     placeholder="Текст песни..." rows={5}
+                    style={{ fontSize: '16px' }}
                     className="w-full bg-[#0f1923] border border-white/10 text-white placeholder:text-slate-600 rounded-lg px-3 py-2.5 text-sm resize-none outline-none focus:border-[#f5a623]/40 transition-colors"
                   />
                 </F>

@@ -13,7 +13,14 @@
       "method": "GET",
       "path": "/?action=list-label-releases",
       "expectedStatus": 200,
-      "expectedBody": {"releases": []},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Список артистов лейбла",
+      "method": "GET",
+      "path": "/?action=list-artists",
+      "expectedStatus": 200,
+      "expectedBody": {"artists": []},
       "bodyMatcher": "partial"
     }
   ]

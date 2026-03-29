@@ -20,6 +20,14 @@
       "body": {},
       "expectedStatus": 401,
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "POST upload-cover without token — 401",
+      "method": "POST",
+      "path": "/?action=upload-cover",
+      "body": {},
+      "expectedStatus": 401,
+      "bodyMatcher": "partial"
     }
   ]
 }

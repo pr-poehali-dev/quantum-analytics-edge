@@ -110,6 +110,12 @@ export const api = {
     like: (artistName: string, sessionId: string) => post("radio-like", { artist_name: artistName, session_id: sessionId }, false),
     unlike: (artistName: string, sessionId: string) => post("radio-unlike", { artist_name: artistName, session_id: sessionId }, false),
     top: (sessionId: string) => get("radio-top", `&session_id=${sessionId}`),
+    getTracks: () => fetch(`${BASE}?action=radio-tracks`).then(r => r.json()),
+    getAllTracks: () => get("radio-tracks-all"),
+    uploadTrack: (data: object) => post("upload-radio-track", data),
+    updateTrack: (data: object) => put("update-radio-track", data),
+    deleteTrack: (id: number) => post("del-radio-track", { id }),
+    getArtists: () => fetch(`${BASE}?action=radio-artists`).then(r => r.json()),
   },
   smartLinks: {
     get: (releaseId: number) => fetch(`${BASE}?action=smart-link&release_id=${releaseId}`, { headers: headers() }).then(r => r.json()),

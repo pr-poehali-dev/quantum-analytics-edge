@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 
-type SideTab = "artists" | "create-user" | "label-news";
+type SideTab = "artists" | "create-user" | "label-news" | "site-artists" | "radio";
 
 interface Artist { id: number; email: string; artist_name: string; created_at: string; }
 
@@ -21,7 +21,7 @@ export default function AdminSidebar({ sideTab, setSideTab, artists, selectedId,
         <p className="text-zinc-500 text-xs mt-1">Админ-панель</p>
       </div>
 
-      <div className="flex border-b border-white/10">
+      <div className="flex flex-wrap border-b border-white/10">
         <button
           onClick={() => setSideTab("artists")}
           className={`flex-1 py-2.5 text-xs font-medium transition-colors ${sideTab === "artists" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-zinc-300"}`}
@@ -33,6 +33,18 @@ export default function AdminSidebar({ sideTab, setSideTab, artists, selectedId,
           className={`flex-1 py-2.5 text-xs font-medium transition-colors ${sideTab === "label-news" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-zinc-300"}`}
         >
           Новинки
+        </button>
+        <button
+          onClick={() => setSideTab("site-artists")}
+          className={`flex-1 py-2.5 text-xs font-medium transition-colors ${sideTab === "site-artists" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-zinc-300"}`}
+        >
+          Главная
+        </button>
+        <button
+          onClick={() => setSideTab("radio")}
+          className={`flex-1 py-2.5 text-xs font-medium transition-colors ${sideTab === "radio" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-zinc-300"}`}
+        >
+          Радио
         </button>
         <button
           onClick={() => setSideTab("create-user")}

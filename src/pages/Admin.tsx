@@ -8,9 +8,11 @@ import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminVisitStats from "@/components/admin/AdminVisitStats";
 import AdminArtistTabs from "@/components/admin/AdminArtistTabs";
 import AdminLabelNews from "@/components/admin/AdminLabelNews";
+import AdminArtists from "@/components/admin/AdminArtists";
+import AdminRadio from "@/components/admin/AdminRadio";
 
 type Tab = "materials" | "releases" | "stats" | "royalties" | "chat" | "documents";
-type SideTab = "artists" | "create-user" | "label-news";
+type SideTab = "artists" | "create-user" | "label-news" | "site-artists" | "radio";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 interface VisitStats { online: number; today: number; week: number; month: number; top_pages: {page: string; visits: number}[]; daily: {date: string; visits: number}[]; }
@@ -329,7 +331,7 @@ export default function Admin() {
     <div className="min-h-screen bg-black text-white flex">
       <AdminSidebar
         sideTab={sideTab}
-        setSideTab={(t) => { setSideTab(t); if (t === "create-user" || t === "label-news") setSelected(null); }}
+        setSideTab={(t) => { setSideTab(t); if (t === "create-user" || t === "label-news" || t === "site-artists") setSelected(null); }}
         artists={artists}
         selectedId={selected?.id ?? null}
         onSelectArtist={(a) => { setSelected(a); setTab("materials"); setSideTab("artists"); }}
@@ -358,6 +360,20 @@ export default function Admin() {
         {/* Новинки лейбла */}
         {sideTab === "label-news" && (
           <AdminLabelNews />
+        )}
+
+        {/* Артисты на главной */}
+        {sideTab === "site-artists" && (
+          <div className="p-6 max-w-2xl">
+            <AdminArtists />
+          </div>
+        )}
+
+        {/* Радио плейлист */}
+        {sideTab === "radio" && (
+          <div className="p-6 max-w-2xl">
+            <AdminRadio />
+          </div>
         )}
 
         {/* Главная — посещаемость */}

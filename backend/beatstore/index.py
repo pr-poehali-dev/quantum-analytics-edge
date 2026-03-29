@@ -1,7 +1,7 @@
 """
-BeatStore KS LABEL: загрузка битов, просмотр, новинки лейбла.
-Публичные: list-beats, get-beat, play-beat, list-label-releases.
-Админ: add-label-release, update-label-release, del-label-release, del-beat.
+BeatStore KS LABEL: загрузка битов, просмотр, новинки лейбла, артисты.
+Публичные: list-beats, get-beat, play-beat, list-label-releases, list-artists.
+Админ: add-label-release, update-label-release, del-label-release, del-beat, admin-artists, add-artist, update-artist, del-artist.
 """
 import json
 import os
@@ -303,6 +303,115 @@ def handler(event: dict, context) -> dict:
             return err(403, 'Доступ запрещён')
         body = json.loads(event.get('body') or '{}')
         cur.execute(f"DELETE FROM {schema}.label_releases WHERE id = %s", (body.get('id'),))
+        conn.commit()
+        cur.close(); conn.close()
+        return ok({'ok': True})
+
+    # ─── ПУБЛИЧНЫЙ: список артистов лейбла ────────────────────────────────
+    if action == 'list-artists' and method == 'GET':
+        cur.execute(f"""
+            SELECT id, name, url, photo_url, sort_order
+            FROM {schema}.label_artists
+            WHERE is_visible = TRUE
+            ORDER BY sort_order ASC, id ASC
+        """)
+        rows = cur.fetchall()
+        artists = [{'id': r[0], 'name': r[1], 'url': r[2], 'photo_url': r[3], 'sort_order': r[4]} for r in rows]
+        cur.close(); conn.close()
+        return ok({'artists': artists})
+
+    # ─── АДМИН: все артисты (включая скрытых) ─────────────────────────────
+    if action == 'admin-artists' and method == 'GET':
+        admin_id = get_admin(cur, token, schema)
+        if not admin_id:
+            cur.close(); conn.close()
+            return err(403, 'Доступ запрещён')
+        cur.execute(f"""
+            SELECT id, name, url, photo_url, sort_order, is_visible, created_at
+            FROM {schema}.label_artists
+            ORDER BY sort_order ASC, id ASC
+        """)
+        rows = cur.fetchall()
+        artists = [{'id': r[0], 'name': r[1], 'url': r[2], 'photo_url': r[3], 'sort_order': r[4], 'is_visible': r[5], 'created_at': str(r[6])} for r in rows]
+        cur.close(); conn.close()
+        return ok({'artists': artists})
+
+    # ─── АДМИН: добавить артиста ───────────────────────────────────────────
+    if action == 'add-artist' and method == 'POST':
+        admin_id = get_admin(cur, token, schema)
+        if not admin_id:
+            cur.close(); conn.close()
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        name = str(body.get('name', '')).strip()
+        url = str(body.get('url', '')).strip()
+        photo_url = str(body.get('photo_url', '')).strip() or None
+        sort_order = int(body.get('sort_order', 0))
+        file_data = body.get('file_data', '')
+        file_name = str(body.get('file_name', 'photo.jpg')).strip()
+        if not name:
+            cur.close(); conn.close()
+            return err(400, 'Укажите имя артиста')
+        if file_data and not photo_url:
+            s3 = get_s3()
+            img_bytes = base64.b64decode(file_data)
+            ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'jpg'
+            img_key = f'artists/{uuid.uuid4()}.{ext}'
+            img_types = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}
+            s3.put_object(Bucket='files', Key=img_key, Body=img_bytes, ContentType=img_types.get(ext, 'image/jpeg'))
+            photo_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{img_key}"
+        cur.execute(f"""
+            INSERT INTO {schema}.label_artists (name, url, photo_url, sort_order)
+            VALUES (%s, %s, %s, %s) RETURNING id, created_at
+        """, (name, url or None, photo_url, sort_order))
+        row = cur.fetchone()
+        conn.commit()
+        cur.close(); conn.close()
+        return ok({'artist': {'id': row[0], 'name': name, 'url': url, 'photo_url': photo_url, 'sort_order': sort_order, 'is_visible': True, 'created_at': str(row[1])}})
+
+    # ─── АДМИН: обновить артиста ───────────────────────────────────────────
+    if action == 'update-artist' and method == 'POST':
+        admin_id = get_admin(cur, token, schema)
+        if not admin_id:
+            cur.close(); conn.close()
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        artist_id = body.get('id')
+        if not artist_id:
+            cur.close(); conn.close()
+            return err(400, 'Укажите id')
+        file_data = body.get('file_data', '')
+        file_name = str(body.get('file_name', 'photo.jpg')).strip()
+        photo_url = body.get('photo_url')
+        if file_data:
+            s3 = get_s3()
+            img_bytes = base64.b64decode(file_data)
+            ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'jpg'
+            img_key = f'artists/{uuid.uuid4()}.{ext}'
+            img_types = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}
+            s3.put_object(Bucket='files', Key=img_key, Body=img_bytes, ContentType=img_types.get(ext, 'image/jpeg'))
+            photo_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{img_key}"
+        fields = {}
+        if 'name' in body: fields['name'] = body['name']
+        if 'url' in body: fields['url'] = body['url']
+        if photo_url is not None: fields['photo_url'] = photo_url
+        if 'sort_order' in body: fields['sort_order'] = int(body['sort_order'])
+        if 'is_visible' in body: fields['is_visible'] = body['is_visible']
+        if fields:
+            set_sql = ', '.join(f"{k} = %s" for k in fields)
+            cur.execute(f"UPDATE {schema}.label_artists SET {set_sql} WHERE id = %s", list(fields.values()) + [artist_id])
+            conn.commit()
+        cur.close(); conn.close()
+        return ok({'ok': True})
+
+    # ─── АДМИН: удалить артиста ───────────────────────────────────────────
+    if action == 'del-artist' and method == 'POST':
+        admin_id = get_admin(cur, token, schema)
+        if not admin_id:
+            cur.close(); conn.close()
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        cur.execute(f"DELETE FROM {schema}.label_artists WHERE id = %s", (body.get('id'),))
         conn.commit()
         cur.close(); conn.close()
         return ok({'ok': True})
