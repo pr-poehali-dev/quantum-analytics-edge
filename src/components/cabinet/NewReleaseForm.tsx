@@ -148,14 +148,13 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
   const handleSubmit = async () => {
     if (!form.title.trim() || !coverFile) { setError("Заполните название и загрузите обложку"); return; }
     setSaving(true); setError("");
-    const formData = new FormData();
-    formData.append("file", coverFile);
-    const coverRes = await fetch(
-      "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2?action=upload-cover",
-      { method: "POST", headers: { "X-Session-Token": localStorage.getItem("ks_token") || "" }, body: formData }
-    );
-    const coverData = await coverRes.json();
-    if (!coverData.cover_url) { setError("Ошибка загрузки обложки"); setSaving(false); return; }
+    const toBase64 = (file: File): Promise<string> =>
+      new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res((r.result as string).split(",")[1]); r.onerror = rej; r.readAsDataURL(file); });
+    const coverData = await api.releases.uploadCover({
+      file_data: await toBase64(coverFile),
+      file_name: coverFile.name,
+    });
+    if (!coverData.cover_url) { setError(coverData.error || "Ошибка загрузки обложки"); setSaving(false); return; }
 
     const res = await api.releases.create({
       title: form.title, artist_name: form.artist_name,

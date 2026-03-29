@@ -142,5 +142,9 @@ export const api = {
     addLabelRelease: (data: object) => fetch(`${BEATSTORE_BASE}?action=add-label-release`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     updateLabelRelease: (data: object) => fetch(`${BEATSTORE_BASE}?action=update-label-release`, { method: 'PUT', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     delLabelRelease: (id: number) => fetch(`${BEATSTORE_BASE}?action=del-label-release`, { method: 'POST', headers: headers(), body: JSON.stringify({ id }) }).then(r => r.json()),
+    adminArtists: () => fetch(`${BEATSTORE_BASE}?action=admin-artists`, { headers: headers() }).then(r => r.json()),
+    addArtist: (data: object) => fetch(`${BEATSTORE_BASE}?action=add-artist`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+    updateArtist: (data: object) => fetch(`${BEATSTORE_BASE}?action=update-artist`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+    delArtist: (id: number) => fetch(`${BEATSTORE_BASE}?action=del-artist`, { method: 'POST', headers: headers(), body: JSON.stringify({ id }) }).then(r => r.json()),
   },
 };

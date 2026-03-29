@@ -376,11 +376,11 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         return ok({'ok': True})
 
-    # Загрузка обложки релиза в S3 (admin)
+    # Загрузка обложки релиза в S3 (авторизованный пользователь)
     if action == 'upload-cover' and method == 'POST':
         u = get_user(cur, token, schema)
-        if not u or u[1] != 'admin':
-            return err(403, 'Доступ запрещён')
+        if not u:
+            return err(401, 'Не авторизован')
         body = json.loads(event.get('body') or '{}')
         file_data = body.get('file_data', '')
         file_name = body.get('file_name', 'cover.jpg')
