@@ -81,7 +81,7 @@ def handler(event: dict, context) -> dict:
         where = 'WHERE ' + ' AND '.join(filters)
         cur.execute(f"""
             SELECT id, title, genre, bpm, price, currency, contact_telegram, contact_email,
-                   file_url, file_name, file_size, cover_url, description, tags, plays, created_at
+                   file_url, file_name, file_size, cover_url, description, tags, plays, created_at, uploader_token
             FROM {schema}.beats {where}
             ORDER BY created_at DESC LIMIT %s OFFSET %s
         """, params + [limit, offset])
@@ -95,6 +95,7 @@ def handler(event: dict, context) -> dict:
                 'file_url': r[8], 'file_name': r[9], 'file_size': r[10],
                 'cover_url': r[11], 'description': r[12], 'tags': r[13],
                 'plays': r[14], 'created_at': str(r[15]),
+                'is_owner': bool(token and r[16] and r[16] == token),
             })
         cur.close(); conn.close()
         return ok({'beats': beats})
@@ -141,14 +142,15 @@ def handler(event: dict, context) -> dict:
             s3.put_object(Bucket='files', Key=c_key, Body=c_bytes, ContentType=img_types.get(c_ext, 'image/jpeg'))
             cover_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{c_key}"
 
+        uploader_token = token if token else None
         cur.execute(f"""
             INSERT INTO {schema}.beats (title, genre, bpm, price, currency, contact_telegram, contact_email,
-                file_url, file_name, file_size, cover_url, description, tags)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                file_url, file_name, file_size, cover_url, description, tags, uploader_token)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id, created_at
         """, (title, genre or None, bpm or None, price or None, currency,
               contact_telegram or None, contact_email or None,
-              file_url, file_name, file_size, cover_url, description or None, tags or None))
+              file_url, file_name, file_size, cover_url, description or None, tags or None, uploader_token))
         row = cur.fetchone()
         conn.commit()
         cur.close(); conn.close()
@@ -164,14 +166,21 @@ def handler(event: dict, context) -> dict:
         cur.close(); conn.close()
         return ok({'ok': True})
 
-    # ─── АДМИН: удалить бит ────────────────────────────────────────────────
+    # ─── Удалить бит (админ или владелец по токену) ────────────────────────
     if action == 'del-beat' and method == 'POST':
+        body = json.loads(event.get('body') or '{}')
+        beat_id = body.get('id')
         admin_id = get_admin(cur, token, schema)
         if not admin_id:
-            cur.close(); conn.close()
-            return err(403, 'Доступ запрещён')
-        body = json.loads(event.get('body') or '{}')
-        cur.execute(f"UPDATE {schema}.beats SET status = 'deleted' WHERE id = %s", (body.get('id'),))
+            if not token:
+                cur.close(); conn.close()
+                return err(403, 'Доступ запрещён')
+            cur.execute(f"SELECT uploader_token FROM {schema}.beats WHERE id = %s AND status = 'active'", (beat_id,))
+            row = cur.fetchone()
+            if not row or row[0] != token:
+                cur.close(); conn.close()
+                return err(403, 'Доступ запрещён')
+        cur.execute(f"UPDATE {schema}.beats SET status = 'deleted' WHERE id = %s", (beat_id,))
         conn.commit()
         cur.close(); conn.close()
         return ok({'ok': True})

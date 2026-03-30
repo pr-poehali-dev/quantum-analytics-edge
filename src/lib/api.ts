@@ -133,8 +133,8 @@ export const api = {
       fetch(SUNO_BASE, { method: "POST", headers: headers(), body: JSON.stringify({ action: "status", task_id: taskId }) }).then(r => r.json()),
   },
   beatstore: {
-    listBeats: (params?: string) => fetch(`${BEATSTORE_BASE}?action=list-beats${params || ''}`).then(r => r.json()),
-    uploadBeat: (data: object) => fetch(`${BEATSTORE_BASE}?action=upload-beat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+    listBeats: (params?: string) => fetch(`${BEATSTORE_BASE}?action=list-beats${params || ''}`, { headers: headers() }).then(r => r.json()),
+    uploadBeat: (data: object) => fetch(`${BEATSTORE_BASE}?action=upload-beat`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     playBeat: (id: number) => fetch(`${BEATSTORE_BASE}?action=play-beat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).then(r => r.json()),
     delBeat: (id: number) => fetch(`${BEATSTORE_BASE}?action=del-beat`, { method: 'POST', headers: headers(), body: JSON.stringify({ id }) }).then(r => r.json()),
     listLabelReleases: () => fetch(`${BEATSTORE_BASE}?action=list-label-releases`).then(r => r.json()),

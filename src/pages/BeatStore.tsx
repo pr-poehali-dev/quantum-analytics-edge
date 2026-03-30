@@ -21,6 +21,7 @@ interface Beat {
   tags: string | null;
   plays: number;
   created_at: string;
+  is_owner?: boolean;
 }
 
 const GENRES = ["Все", "Trap", "Drill", "R&B", "Hip-Hop", "Pop", "Club", "Lo-fi", "Другой"];
@@ -276,7 +277,7 @@ export default function BeatStore() {
                         Email
                       </a>
                     )}
-                    {isAdmin && (
+                    {(isAdmin || beat.is_owner) && (
                       <button
                         onClick={() => handleDelete(beat.id)}
                         disabled={deletingId === beat.id}

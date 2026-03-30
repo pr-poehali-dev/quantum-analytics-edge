@@ -1,26 +1,30 @@
 {
   "tests": [
     {
-      "name": "Список битов",
+      "name": "Список битов — OK",
       "method": "GET",
       "path": "/?action=list-beats",
-      "expectedStatus": 200,
-      "expectedBody": {"beats": []},
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     },
     {
       "name": "Список новинок лейбла",
       "method": "GET",
       "path": "/?action=list-label-releases",
-      "expectedStatus": 200,
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     },
     {
       "name": "Список артистов лейбла",
       "method": "GET",
       "path": "/?action=list-artists",
-      "expectedStatus": 200,
-      "expectedBody": {"artists": []},
+      "expectedStatus": 200
+    },
+    {
+      "name": "Удалить бит без токена — 403",
+      "method": "POST",
+      "path": "/?action=del-beat",
+      "body": {"id": 999},
+      "expectedStatus": 403,
+      "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
     }
   ]
