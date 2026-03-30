@@ -430,9 +430,25 @@ def handler(event: dict, context) -> dict:
         body = json.loads(event.get('body') or '{}')
         lyrics = body.get('lyrics', '') or ''
         copyright_text = body.get('copyright', '') or ''
+
+        audio_url = None
+        audio_file_data = body.get('audio_file_data')
+        audio_file_name = body.get('audio_file_name', 'audio.mp3')
+        if audio_file_data:
+            audio_bytes = base64.b64decode(audio_file_data)
+            ext = audio_file_name.rsplit('.', 1)[-1].lower() if '.' in audio_file_name else 'mp3'
+            audio_key = f'dist-audio/{datetime.now().strftime("%Y%m%d%H%M%S")}_{u[0]}_{audio_file_name}'
+            s3 = boto3.client('s3',
+                endpoint_url='https://bucket.poehali.dev',
+                aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+            )
+            s3.put_object(Bucket='files', Key=audio_key, Body=audio_bytes, ContentType=f'audio/{ext}')
+            audio_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{audio_key}"
+
         cur.execute(
-            f"INSERT INTO {schema}.distribution_requests (user_id, release_id, platforms, message, lyrics, copyright) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id, created_at",
-            (u[0], body.get('release_id') or None, body.get('platforms', ''), body.get('message', ''), lyrics, copyright_text)
+            f"INSERT INTO {schema}.distribution_requests (user_id, release_id, platforms, message, lyrics, copyright, audio_url) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id, created_at",
+            (u[0], body.get('release_id') or None, body.get('platforms', ''), body.get('message', ''), lyrics, copyright_text, audio_url)
         )
         row = cur.fetchone()
         conn.commit()
@@ -459,7 +475,7 @@ def handler(event: dict, context) -> dict:
             )
             send_telegram(tg_token, tg_msg)
 
-        return ok({'request': {'id': row[0], 'status': 'new', 'platforms': platforms, 'message': message, 'lyrics': lyrics, 'copyright': copyright_text, 'created_at': str(row[1])}})
+        return ok({'request': {'id': row[0], 'status': 'new', 'platforms': platforms, 'message': message, 'lyrics': lyrics, 'copyright': copyright_text, 'audio_url': audio_url, 'created_at': str(row[1])}})
 
     # Список заявок на дистрибьюцию (admin или свои)
     if action == 'distribution' and method == 'GET':
@@ -468,10 +484,10 @@ def handler(event: dict, context) -> dict:
             return err(401, 'Не авторизован')
         uid = params.get('user_id') if u[1] == 'admin' else u[0]
         if uid:
-            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at, lyrics, copyright FROM {schema}.distribution_requests WHERE user_id = %s ORDER BY created_at DESC", (uid,))
+            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at, lyrics, copyright, audio_url FROM {schema}.distribution_requests WHERE user_id = %s ORDER BY created_at DESC", (uid,))
         else:
-            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at, lyrics, copyright FROM {schema}.distribution_requests ORDER BY created_at DESC")
-        items = [{'id': r[0], 'user_id': r[1], 'release_id': r[2], 'platforms': r[3], 'message': r[4], 'status': r[5], 'created_at': str(r[6]), 'lyrics': r[7], 'copyright': r[8]} for r in cur.fetchall()]
+            cur.execute(f"SELECT id, user_id, release_id, platforms, message, status, created_at, lyrics, copyright, audio_url FROM {schema}.distribution_requests ORDER BY created_at DESC")
+        items = [{'id': r[0], 'user_id': r[1], 'release_id': r[2], 'platforms': r[3], 'message': r[4], 'status': r[5], 'created_at': str(r[6]), 'lyrics': r[7], 'copyright': r[8], 'audio_url': r[9]} for r in cur.fetchall()]
         return ok({'requests': items})
 
     # Обновить статус заявки (admin)

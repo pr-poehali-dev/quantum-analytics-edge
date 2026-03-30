@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 import { api } from "@/lib/api";
 
-type Tab = "materials" | "releases" | "stats" | "royalties" | "chat" | "documents";
+type Tab = "materials" | "releases" | "stats" | "royalties" | "chat" | "documents" | "requests";
 
 interface Artist { id: number; email: string; artist_name: string; created_at: string; }
 interface Track { id: number; title: string; file_name: string; file_url: string; status: string; notes: string; }
@@ -12,7 +12,7 @@ interface Contract { id: number; title: string; contract_status: string; payment
 interface Message { id: number; sender_role: string; text: string; created_at: string; }
 interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; created_at: string; }
 interface Royalty { id: number; period: string; platform: string; track_title: string; amount: string; currency: string; notes: string | null; created_at: string; }
-interface DistRequest { id: number; platforms: string; message: string; status: string; lyrics: string | null; copyright: string | null; created_at: string; }
+interface DistRequest { id: number; platforms: string; message: string; status: string; lyrics: string | null; copyright: string | null; audio_url?: string | null; created_at: string; }
 interface Document { id: number; title: string; description: string; file_url: string; file_name: string; file_size: number; created_at: string; }
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 interface SmartLink { id?: number; release_id: number; slug: string; title: string; artist_name: string; cover_url: string; description: string; links: { platform: string; url: string; icon: string }[]; active: boolean; }
@@ -162,14 +162,14 @@ export default function AdminArtistTabs(props: Props) {
         </div>
       </div>
 
-      <div className="flex gap-1 mb-6 bg-zinc-900 rounded-xl p-1 max-w-2xl overflow-x-auto">
-        {(["materials", "releases", "stats", "royalties", "documents", "chat"] as Tab[]).map((t) => (
+      <div className="flex gap-1 mb-6 bg-zinc-900 rounded-xl p-1 max-w-3xl overflow-x-auto">
+        {(["materials", "releases", "stats", "royalties", "documents", "requests", "chat"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
           >
-            {t === "materials" ? "Материалы" : t === "releases" ? "Релизы" : t === "stats" ? "Статистика" : t === "royalties" ? "Роялти" : t === "documents" ? "Документы" : "Чат"}
+            {t === "materials" ? "Материалы" : t === "releases" ? "Релизы" : t === "stats" ? "Статистика" : t === "royalties" ? "Роялти" : t === "documents" ? "Документы" : t === "requests" ? "Заявки" : "Чат"}
           </button>
         ))}
       </div>
@@ -721,6 +721,59 @@ export default function AdminArtistTabs(props: Props) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Вкладка Заявки на дистрибьюцию */}
+      {tab === "requests" && (
+        <div className="space-y-4 max-w-2xl">
+          <h3 className="font-semibold text-base">Заявки на дистрибьюцию</h3>
+          {distRequests.length === 0 ? (
+            <div className="text-center py-16 text-zinc-500">
+              <Icon name="Send" size={40} className="mx-auto mb-3 opacity-30" />
+              <p>Заявок пока нет</p>
+            </div>
+          ) : distRequests.map((req) => (
+            <div key={req.id} className="bg-zinc-900 border border-white/5 rounded-xl p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-sm">{req.platforms}</p>
+                  <p className="text-zinc-500 text-xs mt-0.5">{new Date(req.created_at).toLocaleDateString("ru")}</p>
+                </div>
+                <select
+                  value={req.status}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value;
+                    await api.distribution.updateStatus(req.id, newStatus);
+                    setDistRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: newStatus } : r));
+                  }}
+                  className={`text-xs px-2 py-1 rounded-full border-0 outline-none cursor-pointer ${STATUS_COLORS[req.status] || "bg-zinc-700 text-zinc-200"}`}
+                >
+                  <option value="new">Новая</option>
+                  <option value="processing">В обработке</option>
+                  <option value="done">Выполнена</option>
+                </select>
+              </div>
+              {req.message && (
+                <p className="text-zinc-300 text-sm bg-zinc-800 rounded-lg px-3 py-2">{req.message}</p>
+              )}
+              {req.copyright && (
+                <p className="text-zinc-400 text-xs">© {req.copyright}</p>
+              )}
+              {req.lyrics && (
+                <details className="text-xs text-zinc-400">
+                  <summary className="cursor-pointer text-zinc-300 hover:text-white">Текст трека</summary>
+                  <pre className="mt-2 whitespace-pre-wrap font-sans bg-zinc-800 rounded-lg px-3 py-2 max-h-40 overflow-y-auto">{req.lyrics}</pre>
+                </details>
+              )}
+              {req.audio_url && (
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1.5">Аудиофайл</p>
+                  <audio controls src={req.audio_url} className="w-full h-10" style={{ colorScheme: "dark" }} />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

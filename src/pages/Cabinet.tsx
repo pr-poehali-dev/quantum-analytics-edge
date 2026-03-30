@@ -8,6 +8,7 @@ import Icon from "@/components/ui/icon";
 import AudioWavePlayer from "@/components/AudioWavePlayer";
 import NewReleaseForm from "@/components/cabinet/NewReleaseForm";
 import SunoGenerator from "@/components/cabinet/SunoGenerator";
+import DistributionForm, { STATUS_LABELS as DIST_STATUS_LABELS, STATUS_COLORS as DIST_STATUS_COLORS } from "@/components/cabinet/DistributionForm";
 
 type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution" | "documents" | "ai-music";
 
@@ -64,10 +65,7 @@ export default function Cabinet() {
   const [royalties, setRoyalties] = useState<Royalty[]>([]);
   const [royaltiesTotal, setRoyaltiesTotal] = useState(0);
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [distForm, setDistForm] = useState({ platforms: "", message: "", release_id: "", lyrics: "", copyright: "" });
-  const [submittingDist, setSubmittingDist] = useState(false);
-  const [distError, setDistError] = useState("");
-  const [distSuccess, setDistSuccess] = useState("");
+
   const [msgText, setMsgText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [trackTitle, setTrackTitle] = useState("");
@@ -169,27 +167,7 @@ export default function Cabinet() {
     setSending(false);
   };
 
-  const handleDistSubmit = async () => {
-    if (!distForm.platforms.trim()) { setDistError("Укажите платформы"); return; }
-    setSubmittingDist(true);
-    setDistError("");
-    setDistSuccess("");
-    const res = await api.distribution.submit({
-      platforms: distForm.platforms,
-      message: distForm.message,
-      lyrics: distForm.lyrics || undefined,
-      copyright: distForm.copyright || undefined,
-      release_id: distForm.release_id ? Number(distForm.release_id) : undefined,
-    });
-    if (res.request) {
-      setDistRequests((prev) => [res.request, ...prev]);
-      setDistSuccess("Заявка отправлена! Мы свяжемся с вами.");
-      setDistForm({ platforms: "", message: "", release_id: "", lyrics: "", copyright: "" });
-    } else {
-      setDistError(res.error || "Ошибка отправки заявки");
-    }
-    setSubmittingDist(false);
-  };
+
 
   const filteredReleases = releases.filter((r) => {
     const matchSearch = releaseSearch === "" || 
@@ -661,53 +639,10 @@ export default function Cabinet() {
               <div className="bg-[#1a2636] border border-white/5 rounded-2xl p-6">
                 <h3 className="font-semibold mb-1 text-lg">Заявка на дистрибьюцию</h3>
                 <p className="text-slate-500 text-sm mb-5">Выберите платформы и укажите детали — мы разместим ваш трек</p>
-                <div className="space-y-3">
-                  {releases.length > 0 && (
-                    <select
-                      value={distForm.release_id}
-                      onChange={(e) => setDistForm({ ...distForm, release_id: e.target.value })}
-                      className="w-full bg-[#0f1923] border border-white/10 text-white rounded-lg px-3 py-2 text-sm"
-                    >
-                      <option value="">Выберите релиз (необязательно)</option>
-                      {releases.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
-                    </select>
-                  )}
-                  <Input
-                    value={distForm.platforms}
-                    onChange={(e) => setDistForm({ ...distForm, platforms: e.target.value })}
-                    placeholder="Платформы: Spotify, Apple Music, VK Music..."
-                    className="bg-[#0f1923] border-white/10 text-white placeholder:text-slate-600"
-                  />
-                  <textarea
-                    value={distForm.message}
-                    onChange={(e) => setDistForm({ ...distForm, message: e.target.value })}
-                    placeholder="Дополнительная информация..."
-                    rows={3}
-                    className="w-full bg-[#0f1923] border border-white/10 text-white placeholder:text-slate-600 rounded-lg px-3 py-2 text-sm resize-none outline-none focus:border-[#f5a623]/40 transition-colors"
-                  />
-                  <textarea
-                    value={distForm.lyrics}
-                    onChange={(e) => setDistForm({ ...distForm, lyrics: e.target.value })}
-                    placeholder="Текст трека (необязательно)"
-                    rows={4}
-                    className="w-full bg-[#0f1923] border border-white/10 text-white placeholder:text-slate-600 rounded-lg px-3 py-2 text-sm resize-none outline-none focus:border-[#f5a623]/40 transition-colors"
-                  />
-                  <Input
-                    value={distForm.copyright}
-                    onChange={(e) => setDistForm({ ...distForm, copyright: e.target.value })}
-                    placeholder="Правообладатель / Copyright"
-                    className="bg-[#0f1923] border-white/10 text-white placeholder:text-slate-600"
-                  />
-                  {distError && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{distError}</p>}
-                  {distSuccess && <p className="text-green-400 text-sm bg-green-400/10 border border-green-400/20 rounded-lg px-3 py-2">{distSuccess}</p>}
-                  <Button
-                    onClick={handleDistSubmit}
-                    disabled={submittingDist}
-                    className="bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-semibold"
-                  >
-                    {submittingDist ? "Отправляем..." : "Отправить заявку"}
-                  </Button>
-                </div>
+                <DistributionForm
+                  releases={releases}
+                  onSubmitted={(req) => setDistRequests((prev) => [req, ...prev])}
+                />
               </div>
 
               {distRequests.length > 0 && (
@@ -718,8 +653,8 @@ export default function Cabinet() {
                       <div key={req.id} className="bg-[#1a2636] border border-white/5 rounded-xl p-4">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <p className="text-sm font-medium">{req.platforms}</p>
-                          <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${STATUS_COLORS[req.status] || "bg-[#2a3a4a] text-slate-200"}`}>
-                            {STATUS_LABELS[req.status] || req.status}
+                          <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${DIST_STATUS_COLORS[req.status] || "bg-[#2a3a4a] text-slate-200"}`}>
+                            {DIST_STATUS_LABELS[req.status] || req.status}
                           </span>
                         </div>
                         {req.message && <p className="text-slate-400 text-xs">{req.message}</p>}

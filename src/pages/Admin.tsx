@@ -11,7 +11,7 @@ import AdminLabelNews from "@/components/admin/AdminLabelNews";
 import AdminArtists from "@/components/admin/AdminArtists";
 import AdminRadio from "@/components/admin/AdminRadio";
 
-type Tab = "materials" | "releases" | "stats" | "royalties" | "chat" | "documents";
+type Tab = "materials" | "releases" | "stats" | "royalties" | "chat" | "documents" | "requests";
 type SideTab = "artists" | "create-user" | "label-news" | "site-artists" | "radio";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
