@@ -11,7 +11,7 @@ import SunoGenerator from "@/components/cabinet/SunoGenerator";
 import DistributionForm, { STATUS_LABELS as DIST_STATUS_LABELS, STATUS_COLORS as DIST_STATUS_COLORS } from "@/components/cabinet/DistributionForm";
 import ShotsPanel from "@/components/cabinet/ShotsPanel";
 
-type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution" | "documents" | "ai-music" | "shots";
+type Tab = "overview" | "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution" | "documents" | "ai-music" | "shots";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; label?: string; type?: string; }
@@ -30,33 +30,76 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  uploaded: "bg-[#2a3a4a] text-slate-200", in_review: "bg-blue-500/20 text-blue-300",
-  approved: "bg-green-500/20 text-green-300", rejected: "bg-red-500/20 text-red-300", deleted: "bg-red-900/40 text-red-400",
-  pending: "bg-yellow-500/20 text-yellow-300", signed: "bg-green-500/20 text-green-300",
-  cancelled: "bg-red-500/20 text-red-300", unpaid: "bg-orange-500/20 text-orange-300", paid: "bg-green-500/20 text-green-300",
-  moderation: "bg-yellow-500/20 text-yellow-300", ready: "bg-blue-500/20 text-blue-300", published: "bg-green-500/20 text-green-300",
-  new: "bg-[#2a3a4a] text-slate-200", processing: "bg-blue-500/20 text-blue-300", done: "bg-green-500/20 text-green-300",
+  uploaded: "bg-white/10 text-slate-200", in_review: "bg-blue-500/20 text-blue-300",
+  approved: "bg-emerald-500/20 text-emerald-300", rejected: "bg-red-500/20 text-red-300", deleted: "bg-red-900/40 text-red-400",
+  pending: "bg-amber-500/20 text-amber-300", signed: "bg-emerald-500/20 text-emerald-300",
+  cancelled: "bg-red-500/20 text-red-300", unpaid: "bg-orange-500/20 text-orange-300", paid: "bg-emerald-500/20 text-emerald-300",
+  moderation: "bg-amber-500/20 text-amber-300", ready: "bg-blue-500/20 text-blue-300", published: "bg-emerald-500/20 text-emerald-300",
+  new: "bg-white/10 text-slate-200", processing: "bg-blue-500/20 text-blue-300", done: "bg-emerald-500/20 text-emerald-300",
 };
 
-const NAV_ITEMS = [
-  { id: "releases", label: "Моя музыка", icon: "Music2" },
-  { id: "shots", label: "Видеошоты", icon: "Video" },
-  { id: "stats", label: "Аналитика", icon: "BarChart2" },
-  { id: "tracks", label: "Треки", icon: "Upload" },
-  { id: "distribution", label: "Дистрибьюция", icon: "Send" },
-  { id: "royalties", label: "Финансы", icon: "DollarSign" },
-  { id: "contracts", label: "Договоры", icon: "FileText" },
-  { id: "documents", label: "Документы", icon: "FolderOpen" },
-  { id: "ai-music", label: "Генерация песен", icon: "Sparkles" },
-  { id: "chat", label: "Поддержка", icon: "MessageCircle" },
+const RELEASE_FILTERS = ["Все", "Черновики", "Выпущенные", "Удалённые"];
+
+const NAV_SECTIONS = [
+  {
+    label: "ОСНОВНОЕ",
+    items: [
+      { id: "overview", label: "Обзор", icon: "LayoutDashboard" },
+      { id: "releases", label: "Мои релизы", icon: "Disc3" },
+      { id: "distribution", label: "Загрузить релиз", icon: "Upload" },
+    ],
+  },
+  {
+    label: "СТАТИСТИКА",
+    items: [
+      { id: "stats", label: "Аналитика", icon: "BarChart2" },
+      { id: "royalties", label: "Финансы", icon: "DollarSign" },
+    ],
+  },
+  {
+    label: "ИНСТРУМЕНТЫ",
+    items: [
+      { id: "tracks", label: "Треки", icon: "Music2" },
+      { id: "ai-music", label: "AI Музыка", icon: "Sparkles" },
+      { id: "shots", label: "Видеошоты", icon: "Video" },
+      { id: "documents", label: "Документы", icon: "FolderOpen" },
+      { id: "contracts", label: "Договоры", icon: "FileText" },
+    ],
+  },
+  {
+    label: "АККАУНТ",
+    items: [
+      { id: "chat", label: "Поддержка", icon: "MessageCircle" },
+    ],
+  },
 ];
 
-const RELEASE_FILTERS = ["Все", "Черновики", "Выпущенные", "Удалённые"];
+// Musical note decoration component
+function MusicNotesBg() {
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-[0.03]">
+      {["♩","♪","♫","♬","𝄞","𝄢"].map((note, i) => (
+        <span
+          key={i}
+          className="absolute text-white select-none"
+          style={{
+            fontSize: `${60 + i * 20}px`,
+            top: `${10 + i * 15}%`,
+            left: `${5 + i * 16}%`,
+            transform: `rotate(${-20 + i * 10}deg)`,
+          }}
+        >
+          {note}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function Cabinet() {
   const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("releases");
+  const [tab, setTab] = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tracks, setTracks] = useState<TrackItem[]>([]);
   const [contracts, setContracts] = useState<ContractItem[]>([]);
@@ -79,6 +122,7 @@ export default function Cabinet() {
   const [changingPw, setChangingPw] = useState(false);
   const [changePwMsg, setChangePwMsg] = useState("");
   const [showChangePw, setShowChangePw] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [releaseFilter, setReleaseFilter] = useState("Все");
   const [releaseSearch, setReleaseSearch] = useState("");
   const [releaseView, setReleaseView] = useState<"table" | "grid">("table");
@@ -169,10 +213,8 @@ export default function Cabinet() {
     setSending(false);
   };
 
-
-
   const filteredReleases = releases.filter((r) => {
-    const matchSearch = releaseSearch === "" || 
+    const matchSearch = releaseSearch === "" ||
       r.title.toLowerCase().includes(releaseSearch.toLowerCase()) ||
       (r.artist_name || "").toLowerCase().includes(releaseSearch.toLowerCase()) ||
       (r.upc || "").includes(releaseSearch);
@@ -184,173 +226,294 @@ export default function Cabinet() {
   });
 
   if (loading || !user) return (
-    <div className="min-h-screen bg-[#0f1923] flex items-center justify-center">
-      <div className="text-white opacity-60">Загрузка...</div>
+    <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="text-4xl animate-pulse">♪</div>
+        <div className="text-white/40 text-sm">Загрузка...</div>
+      </div>
     </div>
   );
 
   const initials = (user.artist_name || "A").slice(0, 1).toUpperCase();
+  const currentTabLabel = NAV_SECTIONS.flatMap(s => s.items).find(i => i.id === tab)?.label || "Кабинет";
+
+  const goTab = (id: string) => { setTab(id as Tab); setSidebarOpen(false); };
 
   return (
-    <div className="min-h-screen bg-[#0f1923] text-white flex">
+    <div className="min-h-screen bg-[#0a0e1a] text-white flex relative">
+      <MusicNotesBg />
+
       {/* Sidebar overlay on mobile */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
-      <aside className={`fixed lg:static top-0 left-0 h-full w-72 bg-[#1a2636] z-40 flex flex-col transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      {/* ===== SIDEBAR ===== */}
+      <aside className={`fixed lg:static top-0 left-0 h-full w-64 bg-[#0d1220] border-r border-white/[0.06] z-40 flex flex-col transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         {/* Logo */}
-        <div className="flex items-center justify-between p-5 border-b border-white/10">
-          <a href="/" className="text-lg font-bold tracking-tighter text-white leading-tight">
-            Калашников <span className="text-[#f5a623]">Саунд</span>
+        <div className="flex items-center justify-between px-5 py-5 border-b border-white/[0.06]">
+          <a href="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-[#f5a623] rounded-lg flex items-center justify-center text-black font-bold text-sm">♪</div>
+            <span className="font-bold text-white text-sm tracking-tight">Калашников <span className="text-[#f5a623]">Саунд</span></span>
           </a>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
-            <Icon name="X" size={20} />
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/40 hover:text-white">
+            <Icon name="X" size={18} />
           </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          {/* Создать */}
-          <button
-            onClick={() => { setTab("distribution"); setSidebarOpen(false); }}
-            className="w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <div className="w-6 h-6 rounded-full border border-slate-500 flex items-center justify-center">
-              <Icon name="Plus" size={14} />
+        {/* Nav sections */}
+        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label} className="mb-3">
+              <p className="text-[10px] font-semibold text-white/30 tracking-widest px-3 mb-1 mt-2">{section.label}</p>
+              {section.items.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => goTab(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    tab === item.id
+                      ? "bg-[#f5a623]/10 text-[#f5a623]"
+                      : "text-white/50 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Icon name={item.icon} size={16} />
+                  <span>{item.label}</span>
+                  {item.id === "chat" && messages.filter(m => m.sender_role === "admin").length > 0 && (
+                    <span className="ml-auto w-2 h-2 rounded-full bg-[#f5a623]" />
+                  )}
+                </button>
+              ))}
             </div>
-            <span className="font-medium">Создать релиз</span>
-          </button>
-
-          <div className="h-px bg-white/5 my-3" />
-
-          <p className="text-xs text-slate-500 uppercase tracking-widest px-4 mb-2">Музыка</p>
-
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => { setTab(item.id as Tab); setSidebarOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors relative ${
-                tab === item.id
-                  ? "text-[#f5a623] bg-[#f5a623]/10"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              {tab === item.id && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[#f5a623] rounded-r-full" />
-              )}
-              <Icon name={item.icon} size={18} />
-              <span>{item.label}</span>
-            </button>
           ))}
         </nav>
 
-        {/* Social */}
-        <div className="p-5 border-t border-white/10">
-          <p className="text-xs text-slate-500 mb-3 font-semibold">Подписывайтесь на нас</p>
-          <div className="flex gap-2">
-            <a href="#" className="w-8 h-8 bg-[#4680C2] rounded-lg flex items-center justify-center text-white text-xs font-bold hover:opacity-90 transition-opacity">В</a>
-            <a href="#" className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white text-xs font-bold border border-white/10 hover:opacity-90 transition-opacity">TT</a>
-            <a href="#" className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center text-white hover:opacity-90 transition-opacity">
-              <Icon name="Youtube" size={14} />
-            </a>
+        {/* Bottom user area */}
+        <div className="p-4 border-t border-white/[0.06]">
+          <div className="flex items-center gap-3 px-1">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f5a623] to-[#e8952a] flex items-center justify-center text-black font-bold text-sm shrink-0">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white truncate">{user.artist_name}</p>
+              <p className="text-xs text-white/30 truncate">{user.email}</p>
+            </div>
+            <button
+              onClick={() => { logout(); navigate("/login"); }}
+              className="text-white/30 hover:text-white transition-colors shrink-0"
+              title="Выйти"
+            >
+              <Icon name="LogOut" size={15} />
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* ===== MAIN ===== */}
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
         {/* Top header */}
-        <header className="bg-[#0f1923] border-b border-white/10 px-4 lg:px-8 py-4 flex items-center justify-between gap-4 sticky top-0 z-20">
+        <header className="bg-[#0a0e1a]/80 backdrop-blur-md border-b border-white/[0.06] px-5 lg:px-8 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-20">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-400 hover:text-white p-1">
-              <Icon name="Menu" size={22} />
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-white/50 hover:text-white p-1">
+              <Icon name="Menu" size={20} />
             </button>
-            <h1 className="text-lg font-bold hidden sm:block">
-              {NAV_ITEMS.find(n => n.id === tab)?.label || "Кабинет"}
-            </h1>
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-white/30 hidden sm:block">Кабинет</span>
+              <span className="text-white/20 hidden sm:block">/</span>
+              <span className="font-semibold text-white">{currentTabLabel}</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Create button */}
+          <div className="flex items-center gap-2">
+            {/* Upload release CTA */}
             <Button
-              onClick={() => setTab("distribution")}
-              className="bg-[#f5a623] hover:bg-[#f5a623]/90 text-black font-bold px-4 h-9 rounded-xl hidden sm:flex items-center gap-2"
+              onClick={() => goTab("distribution")}
+              className="bg-[#f5a623] hover:bg-[#e8952a] text-black font-bold px-4 h-8 text-sm rounded-lg hidden sm:flex items-center gap-2"
             >
-              <Icon name="Plus" size={16} />
-              Создать
+              <Icon name="Upload" size={14} />
+              Загрузить релиз
             </Button>
 
-            {/* User */}
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full bg-[#f5a623]/20 border border-[#f5a623]/40 flex items-center justify-center text-[#f5a623] font-bold text-sm">
-                {initials}
-              </div>
-              <div className="hidden sm:block">
-                <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded font-medium block mb-0.5">Pro</span>
-                <span className="text-sm font-medium text-white leading-none">{user.artist_name}</span>
-              </div>
-              <Icon name="ChevronDown" size={16} className="text-slate-400" />
-            </div>
-
-            {/* Settings dropdown */}
-            <div className="relative group">
-              <button className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
-                <Icon name="Settings" size={18} />
+            {/* Settings */}
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu(v => !v)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#f5a623] to-[#e8952a] flex items-center justify-center text-black font-bold text-xs">
+                  {initials}
+                </div>
+                <span className="text-sm font-medium hidden sm:block">{user.artist_name}</span>
+                <Icon name="ChevronDown" size={14} className="text-white/40" />
               </button>
-              <div className="absolute right-0 top-full mt-1 w-48 bg-[#1a2636] border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <button
-                  onClick={() => setShowChangePw((v) => !v)}
-                  className="w-full text-left px-4 py-3 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-t-xl transition-colors flex items-center gap-2"
-                >
-                  <Icon name="Key" size={14} />
-                  Сменить пароль
-                </button>
-                <button
-                  onClick={() => { logout(); navigate("/"); }}
-                  className="w-full text-left px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 rounded-b-xl transition-colors flex items-center gap-2"
-                >
-                  <Icon name="LogOut" size={14} />
-                  Выйти
-                </button>
-              </div>
+              {showProfileMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-[#131929] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-white/[0.06]">
+                      <p className="text-sm font-semibold text-white">{user.artist_name}</p>
+                      <p className="text-xs text-white/40">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={() => { setShowChangePw(v => !v); setShowProfileMenu(false); }}
+                      className="w-full text-left px-4 py-3 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2"
+                    >
+                      <Icon name="Key" size={14} />
+                      Сменить пароль
+                    </button>
+                    <button
+                      onClick={() => { logout(); navigate("/login"); }}
+                      className="w-full text-left px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+                    >
+                      <Icon name="LogOut" size={14} />
+                      Выйти
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
 
         {/* Change password bar */}
         {showChangePw && (
-          <div className="bg-[#1a2636] border-b border-white/10 px-4 lg:px-8 py-3">
+          <div className="bg-[#131929] border-b border-white/[0.06] px-5 lg:px-8 py-3">
             <div className="flex items-center gap-3 max-w-lg">
               <Input
                 type="password"
                 value={changePwValue}
                 onChange={(e) => { setChangePwValue(e.target.value); setChangePwMsg(""); }}
                 placeholder="Новый пароль (минимум 6 символов)"
-                className="bg-[#0f1923] border-white/10 text-white placeholder:text-slate-600 text-sm"
+                className="bg-[#0a0e1a] border-white/10 text-white placeholder:text-white/30 text-sm"
                 onKeyDown={(e) => e.key === "Enter" && handleChangePassword()}
               />
               <Button
                 onClick={handleChangePassword}
                 disabled={changingPw || changePwValue.length < 6}
                 size="sm"
-                className="bg-[#f5a623] text-black hover:bg-[#f5a623]/90 shrink-0"
+                className="bg-[#f5a623] text-black hover:bg-[#e8952a] shrink-0 font-semibold"
               >
                 {changingPw ? "..." : "Изменить"}
               </Button>
-              <button onClick={() => { setShowChangePw(false); setChangePwMsg(""); setChangePwValue(""); }} className="text-slate-500 hover:text-white shrink-0">
+              <button onClick={() => { setShowChangePw(false); setChangePwMsg(""); setChangePwValue(""); }} className="text-white/30 hover:text-white shrink-0">
                 <Icon name="X" size={16} />
               </button>
-              {changePwMsg && <p className={`text-xs shrink-0 ${changePwMsg.includes("успешно") ? "text-green-400" : "text-red-400"}`}>{changePwMsg}</p>}
+              {changePwMsg && <p className={`text-xs shrink-0 ${changePwMsg.includes("успешно") ? "text-emerald-400" : "text-red-400"}`}>{changePwMsg}</p>}
             </div>
           </div>
         )}
 
-        {/* Content */}
-        <main className="flex-1 px-4 lg:px-8 py-6">
+        {/* ===== CONTENT ===== */}
+        <main className="flex-1 px-5 lg:px-8 py-6">
 
-          {/* ===== RELEASES (Моя музыка) ===== */}
+          {/* ===== OVERVIEW ===== */}
+          {tab === "overview" && (
+            <div>
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold">Личный <span className="text-[#f5a623]">кабинет</span></h1>
+                <p className="text-white/40 text-sm mt-1">Добро пожаловать, {user.artist_name}</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+                {/* Analytics card */}
+                <div className="bg-[#131929] border border-white/[0.06] rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold tracking-widest text-white/30">АНАЛИТИКА</p>
+                    <button onClick={() => goTab("stats")} className="text-xs text-[#f5a623] hover:underline font-medium">Открыть аналитику</button>
+                  </div>
+                  {stats.length === 0 ? (
+                    <>
+                      <h2 className="text-3xl font-black text-white leading-tight mb-2">Аналитика<br/>пока не<br/>подключена</h2>
+                      <p className="text-white/30 text-sm">После загрузки и публикации первого релиза здесь появятся прослушивания и площадки.</p>
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-4xl font-black">{stats.reduce((a, s) => a + Number(s.streams), 0).toLocaleString("ru")}</p>
+                      <p className="text-white/40 text-sm">прослушиваний всего</p>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-3 gap-3 mt-5">
+                    {[
+                      { label: "РЕЛИЗЫ", value: releases.length },
+                      { label: "ОПУБЛИКОВАНО", value: releases.filter(r => r.status === "published" || r.status === "approved").length },
+                      { label: "НА ПРОВЕРКЕ", value: releases.filter(r => r.status === "in_review" || r.status === "moderation").length },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-[#0a0e1a] rounded-xl p-3">
+                        <p className="text-[10px] text-white/25 font-semibold tracking-wider mb-1">{s.label}</p>
+                        <p className="text-xl font-bold">{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recent releases */}
+                <div className="bg-[#131929] border border-white/[0.06] rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold tracking-widest text-white/30">ПОСЛЕДНИЕ РЕЛИЗЫ</p>
+                    <button onClick={() => goTab("releases")} className="text-xs text-[#f5a623] hover:underline font-medium">Все релизы</button>
+                  </div>
+                  {releases.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <div className="text-5xl mb-3 opacity-20">♪</div>
+                      <p className="text-white/40 text-sm">Здесь будут твои релизы</p>
+                      <p className="text-white/20 text-xs mt-1">Загрузи первый релиз в кабинет</p>
+                      <Button
+                        onClick={() => goTab("distribution")}
+                        className="mt-4 bg-[#f5a623] text-black hover:bg-[#e8952a] font-bold text-sm h-9 px-5 rounded-xl"
+                      >
+                        Загрузить первый релиз
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {releases.slice(0, 4).map((rel) => (
+                        <div key={rel.id} className="flex items-center gap-3">
+                          {rel.cover_url ? (
+                            <img src={rel.cover_url} alt={rel.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-[#0a0e1a] flex items-center justify-center shrink-0 text-white/20">♪</div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold truncate">{rel.title}</p>
+                            <p className="text-xs text-white/40 truncate">{rel.artist_name}</p>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[rel.status] || "bg-white/10 text-white/60"}`}>
+                            {STATUS_LABELS[rel.status] || rel.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick actions */}
+              <div>
+                <p className="text-xs font-semibold tracking-widest text-white/30 mb-3">БЫСТРЫЕ ДЕЙСТВИЯ</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: "Загрузить релиз", icon: "Upload", tab: "distribution" },
+                    { label: "AI Музыка", icon: "Sparkles", tab: "ai-music" },
+                    { label: "Аналитика", icon: "BarChart2", tab: "stats" },
+                    { label: "Поддержка", icon: "MessageCircle", tab: "chat" },
+                  ].map((a) => (
+                    <button
+                      key={a.tab}
+                      onClick={() => goTab(a.tab)}
+                      className="bg-[#131929] hover:bg-[#1a2438] border border-white/[0.06] hover:border-white/10 rounded-xl p-4 flex flex-col items-start gap-3 transition-all text-left group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-[#f5a623]/10 flex items-center justify-center group-hover:bg-[#f5a623]/20 transition-colors">
+                        <Icon name={a.icon} size={18} className="text-[#f5a623]" />
+                      </div>
+                      <span className="text-sm font-medium text-white/70 group-hover:text-white transition-colors">{a.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== RELEASES (Мои релизы) ===== */}
           {tab === "releases" && (
             <div>
               {showNewRelease ? (
@@ -364,103 +527,95 @@ export default function Cabinet() {
                 />
               ) : (
               <>
-              {/* Кнопка нового релиза */}
-              <div className="flex items-center justify-between mb-5">
-                <div />
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold">Мои <span className="text-[#f5a623]">релизы</span></h2>
+                  <p className="text-white/30 text-sm mt-0.5">Все твои загрузки и их статусы</p>
+                </div>
                 <Button
                   onClick={() => setShowNewRelease(true)}
-                  className="bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-semibold"
+                  className="bg-[#f5a623] text-black hover:bg-[#e8952a] font-bold h-9 px-4 rounded-xl"
                 >
-                  <Icon name="Plus" size={16} className="mr-2" />
+                  <Icon name="Plus" size={15} className="mr-1.5" />
                   Новый релиз
                 </Button>
               </div>
-              {/* Filters */}
-              <div className="flex gap-2 mb-5 flex-wrap">
-                {RELEASE_FILTERS.map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setReleaseFilter(f)}
-                    className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
-                      releaseFilter === f
-                        ? "bg-[#f5a623] text-black"
-                        : "bg-[#1a2636] text-slate-300 hover:text-white"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
 
-              {/* Search + view toggle */}
-              <div className="flex items-center gap-3 mb-5">
-                <div className="relative flex-1 max-w-lg">
-                  <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              {/* Search + filters */}
+              <div className="flex flex-wrap items-center gap-3 mb-5">
+                <div className="relative flex-1 min-w-[200px] max-w-md">
+                  <Icon name="Search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   <input
                     value={releaseSearch}
                     onChange={(e) => setReleaseSearch(e.target.value)}
-                    placeholder="Поиск по UPC, названию, артисту"
-                    className="w-full bg-[#1a2636] border border-white/10 text-white placeholder:text-slate-500 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-[#f5a623]/40 transition-colors"
+                    placeholder="Поиск по названию или артисту..."
+                    className="w-full bg-[#131929] border border-white/[0.06] text-white placeholder:text-white/25 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-[#f5a623]/40 transition-colors"
                   />
                 </div>
-                <div className="flex items-center gap-1 text-slate-500">
+                <div className="flex items-center gap-1">
+                  {RELEASE_FILTERS.map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setReleaseFilter(f)}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        releaseFilter === f
+                          ? "bg-[#f5a623] text-black"
+                          : "bg-[#131929] text-white/50 hover:text-white border border-white/[0.06]"
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1 text-white/30 ml-auto">
                   <button onClick={() => setReleaseView("table")} className={`p-2 rounded-lg transition-colors ${releaseView === "table" ? "text-white bg-white/10" : "hover:text-white"}`}>
-                    <Icon name="LayoutList" size={18} />
+                    <Icon name="LayoutList" size={16} />
                   </button>
                   <button onClick={() => setReleaseView("grid")} className={`p-2 rounded-lg transition-colors ${releaseView === "grid" ? "text-white bg-white/10" : "hover:text-white"}`}>
-                    <Icon name="LayoutGrid" size={18} />
+                    <Icon name="LayoutGrid" size={16} />
                   </button>
                 </div>
               </div>
 
               {filteredReleases.length === 0 ? (
-                <div className="text-center py-20 text-slate-500">
-                  <Icon name="Music2" size={48} className="mx-auto mb-4 opacity-30" />
-                  <p>Релизов пока нет</p>
-                  <p className="text-sm mt-1 text-slate-600">Лейбл добавит ваши релизы здесь</p>
+                <div className="text-center py-24 text-white/25">
+                  <div className="text-6xl mb-4">♪</div>
+                  <p className="text-base font-medium">Релизов пока нет</p>
+                  <p className="text-sm mt-1 text-white/15">Загрузи свой первый трек!</p>
                 </div>
               ) : releaseView === "table" ? (
-                <div className="bg-[#1a2636] rounded-2xl overflow-hidden border border-white/5">
-                  {/* Table header */}
-                  <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-white/10">
-                    <div className="col-span-5 text-xs text-slate-500 uppercase tracking-wider font-semibold">Название</div>
-                    <div className="col-span-3 text-xs text-slate-500 uppercase tracking-wider font-semibold hidden md:block">Жанр / Лейбл</div>
-                    <div className="col-span-2 text-xs text-slate-500 uppercase tracking-wider font-semibold hidden sm:block">Дата</div>
-                    <div className="col-span-2 text-xs text-slate-500 uppercase tracking-wider font-semibold">Статус</div>
+                <div className="bg-[#131929] rounded-2xl overflow-hidden border border-white/[0.06]">
+                  <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-white/[0.06]">
+                    <div className="col-span-5 text-[10px] text-white/25 uppercase tracking-widest font-semibold">Название</div>
+                    <div className="col-span-3 text-[10px] text-white/25 uppercase tracking-widest font-semibold hidden md:block">Жанр / Лейбл</div>
+                    <div className="col-span-2 text-[10px] text-white/25 uppercase tracking-widest font-semibold hidden sm:block">Дата</div>
+                    <div className="col-span-2 text-[10px] text-white/25 uppercase tracking-widest font-semibold">Статус</div>
                   </div>
                   {filteredReleases.map((rel) => (
-                    <div key={rel.id} className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 hover:bg-white/3 transition-colors items-center last:border-0">
+                    <div key={rel.id} className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors items-center last:border-0">
                       <div className="col-span-5 flex items-center gap-3 min-w-0">
                         {rel.cover_url ? (
-                          <img src={rel.cover_url} alt={rel.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                          <img src={rel.cover_url} alt={rel.title} className="w-9 h-9 rounded-lg object-cover shrink-0" />
                         ) : (
-                          <div className="w-10 h-10 rounded-lg bg-[#0f1923] flex items-center justify-center shrink-0">
-                            <Icon name="Music" size={16} className="text-slate-600" />
-                          </div>
+                          <div className="w-9 h-9 rounded-lg bg-[#0a0e1a] flex items-center justify-center shrink-0 text-white/20 text-lg">♪</div>
                         )}
                         <div className="min-w-0">
                           <p className="font-semibold text-sm truncate">{rel.title}</p>
-                          <p className="text-slate-500 text-xs truncate">{rel.artist_name}</p>
+                          <p className="text-white/40 text-xs truncate">{rel.artist_name}</p>
                         </div>
                         {rel.upc && (
-                          <button
-                            onClick={() => navigator.clipboard.writeText(rel.upc || "")}
-                            className="ml-1 p-1 text-slate-600 hover:text-slate-300 shrink-0 hidden sm:block"
-                            title="Копировать UPC"
-                          >
-                            <Icon name="Copy" size={12} />
+                          <button onClick={() => navigator.clipboard.writeText(rel.upc || "")} className="ml-1 p-1 text-white/20 hover:text-white/60 shrink-0 hidden sm:block" title="Копировать UPC">
+                            <Icon name="Copy" size={11} />
                           </button>
                         )}
                       </div>
                       <div className="col-span-3 hidden md:block min-w-0">
-                        <p className="text-sm text-slate-300 truncate">{rel.genre || "—"}</p>
-                        <p className="text-xs text-slate-500 truncate">{rel.label || "—"}</p>
+                        <p className="text-sm text-white/60 truncate">{rel.genre || "—"}</p>
+                        <p className="text-xs text-white/30 truncate">{rel.label || "—"}</p>
                       </div>
-                      <div className="col-span-2 text-sm text-slate-400 hidden sm:block">
-                        {rel.release_date || "—"}
-                      </div>
+                      <div className="col-span-2 text-sm text-white/40 hidden sm:block">{rel.release_date || "—"}</div>
                       <div className="col-span-2">
-                        <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap font-medium ${STATUS_COLORS[rel.status] || "bg-[#2a3a4a] text-slate-300"}`}>
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[rel.status] || "bg-white/10 text-white/50"}`}>
                           {STATUS_LABELS[rel.status] || rel.status}
                         </span>
                       </div>
@@ -470,20 +625,20 @@ export default function Cabinet() {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {filteredReleases.map((rel) => (
-                    <div key={rel.id} className="bg-[#1a2636] rounded-xl overflow-hidden border border-white/5 hover:border-white/10 transition-colors">
+                    <div key={rel.id} className="bg-[#131929] rounded-xl overflow-hidden border border-white/[0.06] hover:border-white/10 transition-colors">
                       {rel.cover_url ? (
                         <img src={rel.cover_url} alt={rel.title} className="w-full aspect-square object-cover" />
                       ) : (
-                        <div className="w-full aspect-square bg-[#0f1923] flex items-center justify-center">
-                          <Icon name="Music" size={32} className="text-slate-700" />
-                        </div>
+                        <div className="w-full aspect-square bg-[#0a0e1a] flex items-center justify-center text-5xl text-white/10">♪</div>
                       )}
                       <div className="p-3">
                         <p className="font-semibold text-sm truncate">{rel.title}</p>
-                        <p className="text-slate-500 text-xs truncate mt-0.5">{rel.artist_name}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full mt-2 inline-block ${STATUS_COLORS[rel.status] || "bg-[#2a3a4a] text-slate-300"}`}>
-                          {STATUS_LABELS[rel.status] || rel.status}
-                        </span>
+                        <p className="text-white/40 text-xs truncate mt-0.5">{rel.artist_name}</p>
+                        <div className="mt-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[rel.status] || "bg-white/10 text-white/50"}`}>
+                            {STATUS_LABELS[rel.status] || rel.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -496,136 +651,102 @@ export default function Cabinet() {
 
           {/* ===== TRACKS ===== */}
           {tab === "tracks" && (
-            <div className="space-y-6 max-w-2xl">
-              <div className="bg-[#1a2636] border border-white/5 rounded-2xl p-6">
-                <h3 className="font-semibold mb-4 text-lg">Загрузить трек</h3>
-                <div className="bg-[#0f1923] border border-white/5 rounded-xl p-4 mb-4">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Требования к файлу</p>
-                  <ul className="space-y-1.5">
-                    <li className="flex items-center gap-2 text-xs text-slate-400"><Icon name="Music" size={12} className="text-green-400 shrink-0" /> Формат: <span className="text-white font-medium">WAV</span></li>
-                    <li className="flex items-center gap-2 text-xs text-slate-400"><Icon name="Layers" size={12} className="text-green-400 shrink-0" /> Битрейт: <span className="text-white font-medium">16 bit, 44.1 kHz</span></li>
-                    <li className="flex items-center gap-2 text-xs text-slate-400"><Icon name="Headphones" size={12} className="text-green-400 shrink-0" /> Каналы: <span className="text-white font-medium">Stereo</span></li>
-                    <li className="flex items-center gap-2 text-xs text-slate-400"><Icon name="Image" size={12} className="text-blue-400 shrink-0" /> Обложка: <span className="text-white font-medium">мин. 3000×3000 px, JPEG/PNG</span></li>
-                  </ul>
-                </div>
-                <div className="space-y-3">
+            <div className="max-w-2xl">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Треки</h2>
+                <p className="text-white/30 text-sm mt-0.5">Загружай аудиофайлы для лейбла</p>
+              </div>
+
+              <div className="bg-[#131929] border border-white/[0.06] rounded-2xl p-6 mb-5 space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-white/60 block mb-1.5">Название трека</label>
                   <Input
                     value={trackTitle}
                     onChange={(e) => setTrackTitle(e.target.value)}
-                    placeholder="Название трека"
-                    className="bg-[#0f1923] border-white/10 text-white placeholder:text-slate-600"
+                    placeholder="Введи название трека"
+                    className="bg-[#0a0e1a] border-white/[0.06] text-white placeholder:text-white/20"
                   />
+                </div>
 
-                  {/* ИИ генерация обложки */}
-                  <div className="bg-[#0f1923] border border-white/5 rounded-xl p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Icon name="Sparkles" size={15} className="text-[#f5a623]" />
-                      <p className="text-sm font-semibold">Сгенерировать обложку с ИИ</p>
-                    </div>
+                <div>
+                  <label className="text-sm font-medium text-white/60 block mb-2">Стиль обложки (необязательно)</label>
+                  <div className="flex gap-2">
                     <Input
                       value={coverStyle}
                       onChange={(e) => setCoverStyle(e.target.value)}
-                      placeholder="Стиль / настроение (dark trap, neon city, minimal, lo-fi...)"
-                      className="bg-black border-white/10 text-white placeholder:text-slate-600 text-sm"
+                      placeholder="Например: тёмный, неоновый, атмосферный"
+                      className="bg-[#0a0e1a] border-white/[0.06] text-white placeholder:text-white/20"
                     />
                     <Button
                       onClick={async () => {
-                        if (!trackTitle.trim()) { setCoverGenError("Сначала введите название трека"); return; }
+                        if (!coverStyle.trim() || !trackTitle.trim()) return;
                         setGeneratingCover(true);
                         setCoverGenError("");
-                        setGeneratedCoverUrl(null);
-                        const res = await api.ai.generateCover({
-                          title: trackTitle,
-                          style: coverStyle || undefined,
-                          artist_name: user?.artist_name || undefined,
-                        });
-                        if (res.url) {
-                          setGeneratedCoverUrl(res.url);
-                        } else {
-                          setCoverGenError(res.error || "Ошибка генерации");
-                        }
+                        try {
+                          const res = await api.tracks.generateCover({ style: coverStyle, title: trackTitle });
+                          if (res.cover_url) setGeneratedCoverUrl(res.cover_url);
+                          else setCoverGenError("Не удалось сгенерировать обложку");
+                        } catch { setCoverGenError("Ошибка генерации"); }
                         setGeneratingCover(false);
                       }}
-                      disabled={generatingCover || !trackTitle.trim()}
-                      size="sm"
-                      variant="outline"
-                      className="border-[#f5a623]/40 text-[#f5a623] hover:bg-[#f5a623]/10"
+                      disabled={generatingCover || !coverStyle.trim() || !trackTitle.trim()}
+                      className="bg-[#f5a623] text-black hover:bg-[#e8952a] font-semibold shrink-0"
                     >
-                      {generatingCover ? (
-                        <span className="flex items-center gap-2">
-                          <Icon name="Loader" size={14} className="animate-spin" />
-                          Генерирую...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <Icon name="Wand2" size={14} />
-                          Сгенерировать
-                        </span>
-                      )}
+                      {generatingCover ? "..." : "Создать"}
                     </Button>
-                    {coverGenError && <p className="text-red-400 text-xs">{coverGenError}</p>}
-                    {generatedCoverUrl && (
-                      <div className="space-y-2">
-                        <img
-                          src={generatedCoverUrl}
-                          alt="Сгенерированная обложка"
-                          className="w-40 h-40 rounded-xl object-cover border border-white/10"
-                        />
-                        <div className="flex gap-2">
-                          <a
-                            href={generatedCoverUrl}
-                            download="cover.jpg"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-xs bg-[#f5a623] text-black px-3 py-1.5 rounded-lg font-semibold hover:bg-[#f5a623]/80 transition-colors"
-                          >
-                            <Icon name="Download" size={12} />
-                            Скачать обложку
-                          </a>
-                          <button
-                            onClick={() => { setGeneratedCoverUrl(null); setCoverGenError(""); }}
-                            className="text-xs text-slate-500 hover:text-white px-2"
-                          >
-                            Сбросить
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
-
-                  <input ref={fileRef} type="file" accept="audio/*" onChange={handleFileSelect} className="text-slate-400 text-sm" />
-                  {audioPreviewUrl && (
-                    <div className="bg-[#0f1923] border border-white/10 rounded-xl p-4">
-                      <p className="text-slate-400 text-xs mb-2">Предпрослушивание:</p>
-                      <AudioWavePlayer src={audioPreviewUrl} fileName={selectedFileName} />
+                  {coverGenError && <p className="text-red-400 text-xs mt-1">{coverGenError}</p>}
+                  {generatedCoverUrl && (
+                    <div className="flex items-center gap-3 mt-3">
+                      <img src={generatedCoverUrl} alt="Обложка" className="w-16 h-16 rounded-xl object-cover border border-white/10" />
+                      <a href={generatedCoverUrl} download="cover.jpg" target="_blank" rel="noopener noreferrer" className="text-xs text-[#f5a623] hover:underline flex items-center gap-1">
+                        <Icon name="Download" size={12} />Скачать
+                      </a>
+                      <button onClick={() => { setGeneratedCoverUrl(null); setCoverGenError(""); }} className="text-xs text-white/30 hover:text-white">Сбросить</button>
                     </div>
                   )}
-                  <Button
-                    onClick={handleUpload}
-                    disabled={uploading || !trackTitle.trim()}
-                    className="bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-semibold"
-                  >
-                    {uploading ? "Загружаю..." : "Загрузить"}
-                  </Button>
                 </div>
+
+                <div>
+                  <label className="text-sm font-medium text-white/60 block mb-1.5">Аудиофайл</label>
+                  <input ref={fileRef} type="file" accept="audio/*" onChange={handleFileSelect} className="text-white/40 text-sm" />
+                </div>
+                {audioPreviewUrl && (
+                  <div className="bg-[#0a0e1a] border border-white/[0.06] rounded-xl p-4">
+                    <p className="text-white/30 text-xs mb-2">Предпрослушивание:</p>
+                    <AudioWavePlayer src={audioPreviewUrl} fileName={selectedFileName} />
+                  </div>
+                )}
+                <Button
+                  onClick={handleUpload}
+                  disabled={uploading || !trackTitle.trim()}
+                  className="w-full bg-[#f5a623] text-black hover:bg-[#e8952a] font-bold"
+                >
+                  {uploading ? "Загружаю..." : "Загрузить трек"}
+                </Button>
               </div>
 
               <div className="space-y-2">
-                {tracks.length === 0 && <p className="text-slate-500 text-center py-8">Треки ещё не загружены</p>}
+                {tracks.length === 0 && (
+                  <div className="text-center py-12 text-white/25">
+                    <div className="text-4xl mb-3">♫</div>
+                    <p>Треки ещё не загружены</p>
+                  </div>
+                )}
                 {tracks.map((track) => (
-                  <div key={track.id} className="bg-[#1a2636] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+                  <div key={track.id} className="bg-[#131929] border border-white/[0.06] rounded-xl p-4 flex items-center justify-between">
                     <div className="min-w-0">
                       <p className="font-medium truncate">{track.title}</p>
-                      <p className="text-slate-500 text-xs mt-0.5">{track.file_name}</p>
-                      {track.notes && <p className="text-slate-400 text-sm mt-1">{track.notes}</p>}
+                      <p className="text-white/30 text-xs mt-0.5">{track.file_name}</p>
+                      {track.notes && <p className="text-white/50 text-sm mt-1">{track.notes}</p>}
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[track.status] || "bg-[#2a3a4a] text-slate-200"}`}>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[track.status] || "bg-white/10 text-white/60"}`}>
                         {STATUS_LABELS[track.status] || track.status}
                       </span>
                       {track.file_url && (
                         <a href={track.file_url} target="_blank" rel="noopener noreferrer">
-                          <Icon name="Download" size={16} className="text-slate-400 hover:text-white" />
+                          <Icon name="Download" size={16} className="text-white/30 hover:text-white" />
                         </a>
                       )}
                     </div>
@@ -637,30 +758,31 @@ export default function Cabinet() {
 
           {/* ===== DISTRIBUTION ===== */}
           {tab === "distribution" && (
-            <div className="space-y-6 max-w-2xl">
-              <div className="bg-[#1a2636] border border-white/5 rounded-2xl p-6">
-                <h3 className="font-semibold mb-1 text-lg">Заявка на дистрибьюцию</h3>
-                <p className="text-slate-500 text-sm mb-5">Выберите платформы и укажите детали — мы разместим ваш трек</p>
+            <div className="max-w-2xl space-y-5">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Загрузить <span className="text-[#f5a623]">релиз</span></h2>
+                <p className="text-white/30 text-sm mt-0.5">Выберите платформы и укажите детали</p>
+              </div>
+              <div className="bg-[#131929] border border-white/[0.06] rounded-2xl p-6">
                 <DistributionForm
                   releases={releases}
                   onSubmitted={(req) => setDistRequests((prev) => [req, ...prev])}
                 />
               </div>
-
               {distRequests.length > 0 && (
                 <div>
-                  <h4 className="font-semibold mb-3 text-slate-300">Мои заявки</h4>
+                  <p className="text-xs font-semibold tracking-widest text-white/30 mb-3">МОИ ЗАЯВКИ</p>
                   <div className="space-y-2">
                     {distRequests.map((req) => (
-                      <div key={req.id} className="bg-[#1a2636] border border-white/5 rounded-xl p-4">
+                      <div key={req.id} className="bg-[#131929] border border-white/[0.06] rounded-xl p-4">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <p className="text-sm font-medium">{req.platforms}</p>
-                          <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${DIST_STATUS_COLORS[req.status] || "bg-[#2a3a4a] text-slate-200"}`}>
+                          <span className={`text-xs px-2.5 py-1 rounded-full shrink-0 font-medium ${DIST_STATUS_COLORS[req.status] || "bg-white/10 text-white/60"}`}>
                             {DIST_STATUS_LABELS[req.status] || req.status}
                           </span>
                         </div>
-                        {req.message && <p className="text-slate-400 text-xs">{req.message}</p>}
-                        <p className="text-slate-600 text-xs mt-1">{new Date(req.created_at).toLocaleDateString("ru")}</p>
+                        {req.message && <p className="text-white/40 text-xs">{req.message}</p>}
+                        <p className="text-white/20 text-xs mt-1">{new Date(req.created_at).toLocaleDateString("ru")}</p>
                       </div>
                     ))}
                   </div>
@@ -671,169 +793,152 @@ export default function Cabinet() {
 
           {/* ===== CONTRACTS ===== */}
           {tab === "contracts" && (
-            <div className="space-y-3 max-w-2xl">
-              {contracts.length === 0 ? (
-                <div className="text-center py-20 text-slate-500">
-                  <Icon name="FileText" size={48} className="mx-auto mb-4 opacity-30" />
-                  <p>Договоров пока нет</p>
-                </div>
-              ) : contracts.map((c) => (
-                <div key={c.id} className="bg-[#1a2636] border border-white/5 rounded-xl p-5">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                      <p className="font-semibold">{c.title}</p>
-                      <p className="text-slate-500 text-xs mt-0.5">{c.type}</p>
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${STATUS_COLORS[c.status] || "bg-[#2a3a4a] text-slate-200"}`}>
-                      {STATUS_LABELS[c.status] || c.status}
-                    </span>
+            <div className="max-w-2xl">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Договоры</h2>
+                <p className="text-white/30 text-sm mt-0.5">Твои контракты с лейблом</p>
+              </div>
+              <div className="space-y-3">
+                {contracts.length === 0 ? (
+                  <div className="text-center py-24 text-white/25">
+                    <Icon name="FileText" size={40} className="mx-auto mb-4 opacity-30" />
+                    <p>Договоров пока нет</p>
                   </div>
-                  {c.notes && <p className="text-slate-400 text-sm mb-3">{c.notes}</p>}
-                  {c.amount > 0 && (
-                    <div className="flex items-center justify-between">
-                      <p className="text-slate-400 text-sm">К оплате: <span className="text-white font-semibold">{Number(c.amount).toLocaleString("ru")} {c.currency}</span></p>
-                      {c.status === "unpaid" && (
-                        <Button
-                          size="sm"
-                          onClick={() => handlePay(c.id)}
-                          disabled={payingId === c.id}
-                          className="bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-semibold"
-                        >
-                          {payingId === c.id ? "..." : "Оплатить"}
-                        </Button>
-                      )}
+                ) : contracts.map((c) => (
+                  <div key={c.id} className="bg-[#131929] border border-white/[0.06] rounded-xl p-5">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <p className="font-semibold">{c.title}</p>
+                        <p className="text-white/30 text-xs mt-0.5">{c.type}</p>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded-full shrink-0 font-medium ${STATUS_COLORS[c.status] || "bg-white/10 text-white/60"}`}>
+                        {STATUS_LABELS[c.status] || c.status}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {c.notes && <p className="text-white/40 text-sm mb-3">{c.notes}</p>}
+                    {c.amount > 0 && (
+                      <div className="flex items-center justify-between">
+                        <p className="text-white/40 text-sm">К оплате: <span className="text-white font-semibold">{Number(c.amount).toLocaleString("ru")} {c.currency}</span></p>
+                        {c.status === "unpaid" && (
+                          <Button size="sm" onClick={() => handlePay(c.id)} disabled={payingId === c.id} className="bg-[#f5a623] text-black hover:bg-[#e8952a] font-semibold">
+                            {payingId === c.id ? "..." : "Оплатить"}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {/* ===== STATS ===== */}
           {tab === "stats" && (
-            <div className="space-y-5">
+            <div>
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Аналитика</h2>
+                <p className="text-white/30 text-sm mt-0.5">Статистика релизов по платформам</p>
+              </div>
               {stats.length === 0 ? (
-                <div className="text-center py-20 text-slate-500">
-                  <Icon name="BarChart2" size={48} className="mx-auto mb-4 opacity-30" />
-                  <p>Статистика пока не добавлена</p>
-                  <p className="text-sm mt-1 text-slate-600">Лейбл добавит данные после выхода релизов</p>
-                </div>
-              ) : (
-                <>
-                  {/* Summary */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-[#1a2636] border border-white/5 rounded-xl p-4">
-                      <p className="text-slate-500 text-sm mb-1">Всего стримов</p>
-                      <p className="text-2xl font-bold text-white">{stats.reduce((a, s) => a + Number(s.streams), 0).toLocaleString("ru")}</p>
-                    </div>
-                    <div className="bg-[#1a2636] border border-white/5 rounded-xl p-4">
-                      <p className="text-slate-500 text-sm mb-1">Треков</p>
-                      <p className="text-2xl font-bold text-white">{new Set(stats.map(s => s.track_title)).size}</p>
-                    </div>
-                    <div className="bg-[#1a2636] border border-white/5 rounded-xl p-4">
-                      <p className="text-slate-500 text-sm mb-1">Платформ</p>
-                      <p className="text-2xl font-bold text-white">{new Set(stats.map(s => s.platform)).size}</p>
-                    </div>
-                    <div className="bg-[#1a2636] border border-white/5 rounded-xl p-4">
-                      <p className="text-slate-500 text-sm mb-1">Записей</p>
-                      <p className="text-2xl font-bold text-white">{stats.length}</p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  <div className="bg-[#131929] border border-white/[0.06] rounded-2xl p-8">
+                    <p className="text-xs font-semibold tracking-widest text-white/25 mb-4">СВОДКА</p>
+                    <h2 className="text-4xl font-black leading-tight mb-3">Данные<br/>появятся<br/>после<br/>импорта</h2>
+                    <p className="text-white/30 text-sm">Когда статистика подгрузится, здесь появятся реальные графики, площадки и краткая сводка по релизам.</p>
+                    <div className="flex gap-4 mt-5 text-xs text-white/25 font-medium">
+                      <span>Все релизы</span>
+                      <span>0 площадок</span>
+                      <span>30 дней</span>
                     </div>
                   </div>
-
-                  {/* Chart */}
-                  {(() => {
-                    const byTrack = stats.reduce<Record<string, number>>((acc, s) => {
-                      acc[s.track_title] = (acc[s.track_title] || 0) + Number(s.streams);
-                      return acc;
-                    }, {});
-                    const sorted = Object.entries(byTrack).sort((a, b) => b[1] - a[1]);
-                    const maxVal = sorted[0]?.[1] || 1;
-                    const colors = ["bg-purple-500", "bg-blue-500", "bg-[#f5a623]", "bg-green-500", "bg-pink-500", "bg-orange-500"];
-                    return (
-                      <div className="bg-[#1a2636] border border-white/5 rounded-xl p-5">
-                        <p className="font-semibold text-sm mb-4">По трекам</p>
-                        <div className="space-y-3">
-                          {sorted.slice(0, 8).map(([title, streams], i) => (
-                            <div key={title}>
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm text-slate-300 truncate max-w-[60%]">{title}</span>
-                                <span className="text-xs text-slate-400 font-medium">{streams.toLocaleString("ru")}</span>
-                              </div>
-                              <div className="h-2 bg-[#0f1923] rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full ${colors[i % colors.length]} rounded-full transition-all duration-700`}
-                                  style={{ width: `${Math.round((streams / maxVal) * 100)}%` }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                  <div className="bg-[#131929] border border-white/[0.06] rounded-2xl p-8">
+                    <p className="text-xs font-semibold tracking-widest text-white/25 mb-4">РЕЛИЗ</p>
+                    <div className="space-y-4">
+                      <select className="w-full bg-[#0a0e1a] border border-white/[0.06] text-white/40 rounded-xl px-4 py-2.5 text-sm outline-none">
+                        <option>— Все релизы —</option>
+                      </select>
+                      <div className="flex gap-2">
+                        {["7 дней","30 дней","90 дней","Год"].map(p => (
+                          <button key={p} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${p === "30 дней" ? "bg-[#f5a623] text-black" : "bg-white/5 text-white/40"}`}>{p}</button>
+                        ))}
                       </div>
-                    );
-                  })()}
-
-                  <div className="space-y-2">
-                    {stats.map((s) => (
-                      <div key={s.id} className="bg-[#1a2636] border border-white/5 rounded-xl p-4 flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{s.track_title}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs bg-[#0f1923] text-slate-300 px-2 py-0.5 rounded-full">{s.platform}</span>
-                            {s.period && <span className="text-slate-500 text-xs">{s.period}</span>}
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-xl font-bold text-white">{Number(s.streams).toLocaleString("ru")}</p>
-                          <p className="text-slate-500 text-xs">прослушиваний</p>
-                        </div>
+                      <div>
+                        <p className="text-white/25 text-xs mb-1">Главная площадка</p>
+                        <p className="text-3xl font-bold">0</p>
+                        <p className="text-white/25 text-xs mt-1">За 30 дней пока нет лидирующей площадки</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="lg:col-span-2 bg-[#131929] border border-white/[0.06] rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+                    <Icon name="BarChart2" size={40} className="text-white/10 mb-3" />
+                    <p className="font-semibold text-white/40">Статистика появится после выхода релиза на платформах</p>
+                    <p className="text-sm text-white/20 mt-1">Выберите релиз — данные обновляются ежедневно.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { label: "Всего стримов", value: stats.reduce((a, s) => a + Number(s.streams), 0).toLocaleString("ru") },
+                      { label: "Треков", value: new Set(stats.map(s => s.track_title)).size },
+                      { label: "Платформ", value: new Set(stats.map(s => s.platform)).size },
+                      { label: "Периодов", value: new Set(stats.map(s => s.period)).size },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-[#131929] border border-white/[0.06] rounded-xl p-5">
+                        <p className="text-white/30 text-sm mb-1">{s.label}</p>
+                        <p className="text-2xl font-bold">{s.value}</p>
                       </div>
                     ))}
                   </div>
-                </>
+                  <div className="bg-[#131929] border border-white/[0.06] rounded-2xl overflow-hidden">
+                    <div className="grid grid-cols-5 gap-4 px-6 py-3 border-b border-white/[0.06]">
+                      {["Платформа","Трек","Период","Стримы","Заметки"].map(h => (
+                        <div key={h} className="text-[10px] text-white/25 uppercase tracking-widest font-semibold">{h}</div>
+                      ))}
+                    </div>
+                    {stats.map((s) => (
+                      <div key={s.id} className="grid grid-cols-5 gap-4 px-6 py-4 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
+                        <div className="text-sm font-medium">{s.platform}</div>
+                        <div className="text-sm text-white/60 truncate">{s.track_title}</div>
+                        <div className="text-sm text-white/40">{s.period}</div>
+                        <div className="text-sm font-semibold text-[#f5a623]">{Number(s.streams).toLocaleString("ru")}</div>
+                        <div className="text-xs text-white/30 truncate">{s.notes || "—"}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}
 
           {/* ===== ROYALTIES ===== */}
           {tab === "royalties" && (
-            <div className="space-y-4">
+            <div className="max-w-2xl">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Финансы</h2>
+                <p className="text-white/30 text-sm mt-0.5">Роялти и выплаты</p>
+              </div>
               {royalties.length === 0 ? (
-                <div className="text-center py-20 text-slate-500">
-                  <Icon name="DollarSign" size={48} className="mx-auto mb-4 opacity-30" />
-                  <p>Роялти пока не начислены</p>
-                  <p className="text-sm mt-1 text-slate-600">Лейбл добавит данные после выхода релизов</p>
+                <div className="text-center py-24 text-white/25">
+                  <Icon name="DollarSign" size={40} className="mx-auto mb-4 opacity-30" />
+                  <p>Выплат пока нет</p>
+                  <p className="text-sm mt-1 text-white/15">Данные появятся после публикации релизов</p>
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-[#1a2636] border border-white/5 rounded-xl p-5 text-center sm:col-span-1">
-                      <p className="text-slate-500 text-sm mb-1">Всего начислено</p>
-                      <p className="text-3xl font-bold text-green-400">{royaltiesTotal.toLocaleString("ru", { minimumFractionDigits: 2 })} ₽</p>
-                    </div>
-                    <div className="bg-[#1a2636] border border-white/5 rounded-xl p-5 text-center">
-                      <p className="text-slate-500 text-sm mb-1">Записей</p>
-                      <p className="text-3xl font-bold text-white">{royalties.length}</p>
-                    </div>
-                    <div className="bg-[#1a2636] border border-white/5 rounded-xl p-5 text-center">
-                      <p className="text-slate-500 text-sm mb-1">Платформ</p>
-                      <p className="text-3xl font-bold text-white">{new Set(royalties.map(r => r.platform)).size}</p>
-                    </div>
+                  <div className="bg-[#131929] border border-white/[0.06] rounded-xl p-5 mb-5">
+                    <p className="text-white/30 text-sm mb-1">Итого начислено</p>
+                    <p className="text-3xl font-bold text-[#f5a623]">{Number(royaltiesTotal).toLocaleString("ru")} ₽</p>
                   </div>
                   <div className="space-y-2">
                     {royalties.map((r) => (
-                      <div key={r.id} className="bg-[#1a2636] border border-white/5 rounded-xl p-4 flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
+                      <div key={r.id} className="bg-[#131929] border border-white/[0.06] rounded-xl p-4 flex items-center justify-between">
+                        <div className="min-w-0">
                           <p className="font-medium truncate">{r.track_title}</p>
-                          <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            <span className="text-xs bg-[#0f1923] text-slate-300 px-2 py-0.5 rounded-full">{r.platform}</span>
-                            <span className="text-slate-500 text-xs">{r.period}</span>
-                          </div>
-                          {r.notes && <p className="text-slate-500 text-xs mt-1">{r.notes}</p>}
+                          <p className="text-white/30 text-xs mt-0.5">{r.platform} · {r.period}</p>
+                          {r.notes && <p className="text-white/40 text-xs mt-1">{r.notes}</p>}
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-xl font-bold text-green-400">+{Number(r.amount).toLocaleString("ru", { minimumFractionDigits: 2 })}</p>
-                          <p className="text-slate-500 text-xs">{r.currency}</p>
-                        </div>
+                        <p className="text-[#f5a623] font-bold shrink-0 ml-4">{Number(r.amount).toLocaleString("ru")} {r.currency}</p>
                       </div>
                     ))}
                   </div>
@@ -844,35 +949,31 @@ export default function Cabinet() {
 
           {/* ===== DOCUMENTS ===== */}
           {tab === "documents" && (
-            <div className="max-w-2xl space-y-3">
+            <div className="max-w-2xl">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Документы</h2>
+                <p className="text-white/30 text-sm mt-0.5">Файлы от лейбла</p>
+              </div>
               {documents.length === 0 ? (
-                <div className="text-center py-20 text-slate-500">
-                  <Icon name="FolderOpen" size={48} className="mx-auto mb-4 opacity-30" />
+                <div className="text-center py-24 text-white/25">
+                  <Icon name="FolderOpen" size={40} className="mx-auto mb-4 opacity-30" />
                   <p>Документов пока нет</p>
-                  <p className="text-sm mt-1 text-slate-600">Лейбл прикрепит договора и контракты для подписи</p>
                 </div>
               ) : documents.map((doc) => (
-                <div key={doc.id} className="bg-[#1a2636] border border-white/5 rounded-xl p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 bg-[#0f1923] rounded-lg flex items-center justify-center shrink-0">
-                    <Icon name="FileText" size={20} className="text-[#f5a623]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">{doc.title}</p>
-                    {doc.description && <p className="text-slate-400 text-xs mt-0.5 truncate">{doc.description}</p>}
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-slate-500 text-xs">{doc.file_name}</span>
-                      {doc.file_size && <span className="text-slate-600 text-xs">{(doc.file_size / 1024).toFixed(0)} КБ</span>}
-                      <span className="text-slate-600 text-xs">{new Date(doc.created_at).toLocaleDateString("ru")}</span>
-                    </div>
+                <div key={doc.id} className="bg-[#131929] border border-white/[0.06] rounded-xl p-4 mb-2 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{doc.title}</p>
+                    {doc.description && <p className="text-white/40 text-xs mt-0.5 truncate">{doc.description}</p>}
+                    <p className="text-white/20 text-xs mt-1">{doc.file_name} · {(doc.file_size / 1024).toFixed(1)} КБ</p>
                   </div>
                   <a
                     href={doc.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     download={doc.file_name}
-                    className="shrink-0 flex items-center gap-2 bg-[#f5a623] text-black hover:bg-[#f5a623]/90 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                    className="shrink-0 flex items-center gap-2 bg-[#f5a623] text-black hover:bg-[#e8952a] text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
                   >
-                    <Icon name="Download" size={15} />
+                    <Icon name="Download" size={14} />
                     Скачать
                   </a>
                 </div>
@@ -886,9 +987,9 @@ export default function Cabinet() {
           {/* ===== SHOTS ===== */}
           {tab === "shots" && (
             <div>
-              <div className="mb-5">
-                <h3 className="font-bold text-xl">Видеошоты</h3>
-                <p className="text-slate-500 text-sm mt-0.5">Управляй своими видео и смотри статистику</p>
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Видеошоты</h2>
+                <p className="text-white/30 text-sm mt-0.5">Управляй своими видео и смотри статистику</p>
               </div>
               <ShotsPanel />
             </div>
@@ -897,36 +998,39 @@ export default function Cabinet() {
           {/* ===== CHAT ===== */}
           {tab === "chat" && (
             <div className="max-w-2xl">
-              <div className="bg-[#1a2636] border border-white/5 rounded-2xl flex flex-col h-[540px]">
-                <div className="p-4 border-b border-white/10">
-                  <p className="font-semibold">Поддержка</p>
-                  <p className="text-slate-500 text-xs mt-0.5">Чат с командой лейбла</p>
-                </div>
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Поддержка</h2>
+                <p className="text-white/30 text-sm mt-0.5">Чат с командой лейбла</p>
+              </div>
+              <div className="bg-[#131929] border border-white/[0.06] rounded-2xl flex flex-col h-[540px]">
                 <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                   {messages.length === 0 && (
-                    <p className="text-slate-500 text-center py-8">Напиши первое сообщение команде лейбла</p>
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                      <div className="text-4xl mb-3 opacity-20">💬</div>
+                      <p className="text-white/30 text-sm">Напиши первое сообщение команде лейбла</p>
+                    </div>
                   )}
                   {messages.map((m) => (
                     <div key={m.id} className={`flex ${m.sender_role === "artist" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${m.sender_role === "artist" ? "bg-[#f5a623] text-black" : "bg-[#0f1923] text-white border border-white/5"}`}>
-                        {m.sender_role === "admin" && <p className="text-xs text-slate-500 mb-1 font-medium">Лейбл</p>}
+                      <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${m.sender_role === "artist" ? "bg-[#f5a623] text-black font-medium" : "bg-[#0a0e1a] text-white border border-white/[0.06]"}`}>
+                        {m.sender_role === "admin" && <p className="text-xs text-white/40 mb-1 font-semibold">Лейбл</p>}
                         <p>{m.text}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="p-4 border-t border-white/10 flex gap-2">
+                <div className="p-4 border-t border-white/[0.06] flex gap-2">
                   <Input
                     value={msgText}
                     onChange={(e) => setMsgText(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSend()}
                     placeholder="Написать сообщение..."
-                    className="bg-[#0f1923] border-white/10 text-white placeholder:text-slate-600"
+                    className="bg-[#0a0e1a] border-white/[0.06] text-white placeholder:text-white/25"
                   />
                   <Button
                     onClick={handleSend}
                     disabled={sending || !msgText.trim()}
-                    className="bg-[#f5a623] text-black hover:bg-[#f5a623]/90 shrink-0"
+                    className="bg-[#f5a623] text-black hover:bg-[#e8952a] shrink-0"
                   >
                     <Icon name="Send" size={16} />
                   </Button>
