@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import SmartLink from "./pages/SmartLink";
 import BeatStore from "./pages/BeatStore";
 import LabelNews from "./pages/LabelNews";
+import Shots from "./pages/Shots";
 import { AuthProvider } from "./contexts/AuthContext";
 import { api } from "./lib/api";
 
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/r/:slug" element={<SmartLink />} />
             <Route path="/beatstore" element={<BeatStore />} />
             <Route path="/label-news" element={<LabelNews />} />
+            <Route path="/shots" element={<Shots />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

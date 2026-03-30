@@ -9,8 +9,9 @@ import AudioWavePlayer from "@/components/AudioWavePlayer";
 import NewReleaseForm from "@/components/cabinet/NewReleaseForm";
 import SunoGenerator from "@/components/cabinet/SunoGenerator";
 import DistributionForm, { STATUS_LABELS as DIST_STATUS_LABELS, STATUS_COLORS as DIST_STATUS_COLORS } from "@/components/cabinet/DistributionForm";
+import ShotsPanel from "@/components/cabinet/ShotsPanel";
 
-type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution" | "documents" | "ai-music";
+type Tab = "tracks" | "releases" | "contracts" | "stats" | "royalties" | "chat" | "distribution" | "documents" | "ai-music" | "shots";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 interface Release { id: number; title: string; artist_name: string; upc: string | null; cover_url: string | null; status: string; genre: string | null; release_date: string | null; notes: string | null; label?: string; type?: string; }
@@ -39,6 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const NAV_ITEMS = [
   { id: "releases", label: "Моя музыка", icon: "Music2" },
+  { id: "shots", label: "Видеошоты", icon: "Video" },
   { id: "stats", label: "Аналитика", icon: "BarChart2" },
   { id: "tracks", label: "Треки", icon: "Upload" },
   { id: "distribution", label: "Дистрибьюция", icon: "Send" },
@@ -880,6 +882,17 @@ export default function Cabinet() {
 
           {/* ===== AI MUSIC ===== */}
           {tab === "ai-music" && <SunoGenerator />}
+
+          {/* ===== SHOTS ===== */}
+          {tab === "shots" && (
+            <div>
+              <div className="mb-5">
+                <h3 className="font-bold text-xl">Видеошоты</h3>
+                <p className="text-slate-500 text-sm mt-0.5">Управляй своими видео и смотри статистику</p>
+              </div>
+              <ShotsPanel />
+            </div>
+          )}
 
           {/* ===== CHAT ===== */}
           {tab === "chat" && (

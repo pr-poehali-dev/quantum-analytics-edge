@@ -1,0 +1,36 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Лента видео — публично",
+      "method": "GET",
+      "path": "/?action=feed",
+      "expectedStatus": 200,
+      "expectedBody": {"shots": []},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Лайк без токена — 401",
+      "method": "POST",
+      "path": "/?action=like",
+      "body": {"shot_id": 1},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Загрузка без токена — 401",
+      "method": "POST",
+      "path": "/?action=upload",
+      "body": {"title": "test"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

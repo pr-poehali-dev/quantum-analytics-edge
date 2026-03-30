@@ -1,4 +1,5 @@
 const BASE = "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f";
+const SHOTS_BASE = "https://functions.poehali.dev/b4fdb0bf-57f9-4b94-8ead-c58dbd739c80";
 const TRACKS = "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2";
 const AUTH = "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c";
 const SMARTLINK_BASE = "https://functions.poehali.dev/a881dc8f-d2db-4da3-b755-0d1aa6cd08a0";
@@ -146,5 +147,15 @@ export const api = {
     addArtist: (data: object) => fetch(`${BEATSTORE_BASE}?action=add-artist`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     updateArtist: (data: object) => fetch(`${BEATSTORE_BASE}?action=update-artist`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     delArtist: (id: number) => fetch(`${BEATSTORE_BASE}?action=del-artist`, { method: 'POST', headers: headers(), body: JSON.stringify({ id }) }).then(r => r.json()),
+  },
+  shots: {
+    feed: (params?: string) => fetch(`${SHOTS_BASE}?action=feed${params || ''}`, { headers: headers() }).then(r => r.json()),
+    upload: (data: object) => fetch(`${SHOTS_BASE}?action=upload`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+    like: (shot_id: number) => fetch(`${SHOTS_BASE}?action=like`, { method: 'POST', headers: headers(), body: JSON.stringify({ shot_id }) }).then(r => r.json()),
+    comments: (shot_id: number) => fetch(`${SHOTS_BASE}?action=comments&shot_id=${shot_id}`, { headers: headers() }).then(r => r.json()),
+    comment: (shot_id: number, text: string) => fetch(`${SHOTS_BASE}?action=comment`, { method: 'POST', headers: headers(), body: JSON.stringify({ shot_id, text }) }).then(r => r.json()),
+    delete: (shot_id: number) => fetch(`${SHOTS_BASE}?action=delete`, { method: 'POST', headers: headers(), body: JSON.stringify({ shot_id }) }).then(r => r.json()),
+    view: (shot_id: number) => fetch(`${SHOTS_BASE}?action=view`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shot_id }) }).then(r => r.json()),
+    myStats: () => fetch(`${SHOTS_BASE}?action=my-stats`, { headers: headers() }).then(r => r.json()),
   },
 };

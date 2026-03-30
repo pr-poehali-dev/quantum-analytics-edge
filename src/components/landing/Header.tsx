@@ -96,6 +96,12 @@ const Header = () => {
               </button>
             </li>
             <li>
+              <a href="/shots" className="text-white hover:text-purple-400 transition-colors flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block animate-pulse" />
+                Видеошоты
+              </a>
+            </li>
+            <li>
               <a href="/radio" className="text-white hover:text-purple-400 transition-colors flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
                 Live Radio
