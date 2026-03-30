@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
@@ -25,8 +26,11 @@ interface Beat {
 const GENRES = ["Все", "Trap", "Drill", "R&B", "Hip-Hop", "Pop", "Club", "Lo-fi", "Другой"];
 
 export default function BeatStore() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [beats, setBeats] = useState<Beat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [genre, setGenre] = useState("Все");
   const [playingId, setPlayingId] = useState<number | null>(null);
@@ -83,6 +87,14 @@ export default function BeatStore() {
       reader.onload = () => resolve((reader.result as string).split(",")[1]);
       reader.readAsDataURL(file);
     });
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Удалить этот бит?")) return;
+    setDeletingId(id);
+    await api.beatstore.delBeat(id);
+    setBeats((prev) => prev.filter((b) => b.id !== id));
+    setDeletingId(null);
+  };
 
   const handleUpload = async () => {
     if (!form.title.trim() || !audioFile) return;
@@ -243,7 +255,7 @@ export default function BeatStore() {
                   ) : (
                     <span className="text-sm text-green-400 font-semibold">Бесплатно</span>
                   )}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap justify-end">
                     {beat.contact_telegram && (
                       <a
                         href={`https://t.me/${beat.contact_telegram.replace("@", "")}`}
@@ -263,6 +275,16 @@ export default function BeatStore() {
                         <Icon name="Mail" size={12} />
                         Email
                       </a>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDelete(beat.id)}
+                        disabled={deletingId === beat.id}
+                        className="flex items-center gap-1 text-xs bg-red-900/40 text-red-400 hover:bg-red-900/70 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <Icon name={deletingId === beat.id ? "Loader2" : "Trash2"} size={12} />
+                        Удалить
+                      </button>
                     )}
                   </div>
                 </div>

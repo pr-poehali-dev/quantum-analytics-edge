@@ -444,9 +444,9 @@ export default function Cabinet() {
                   {/* Table header */}
                   <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-white/10">
                     <div className="col-span-5 text-xs text-slate-500 uppercase tracking-wider font-semibold">Название</div>
-                    <div className="col-span-3 text-xs text-slate-500 uppercase tracking-wider font-semibold hidden md:block">Лейбл</div>
-                    <div className="col-span-2 text-xs text-slate-500 uppercase tracking-wider font-semibold hidden sm:block">Тип</div>
-                    <div className="col-span-2 text-xs text-slate-500 uppercase tracking-wider font-semibold hidden lg:block">Дата релиза</div>
+                    <div className="col-span-3 text-xs text-slate-500 uppercase tracking-wider font-semibold hidden md:block">Жанр / Лейбл</div>
+                    <div className="col-span-2 text-xs text-slate-500 uppercase tracking-wider font-semibold hidden sm:block">Дата</div>
+                    <div className="col-span-2 text-xs text-slate-500 uppercase tracking-wider font-semibold">Статус</div>
                   </div>
                   {filteredReleases.map((rel) => (
                     <div key={rel.id} className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 hover:bg-white/3 transition-colors items-center last:border-0">
@@ -472,15 +472,15 @@ export default function Cabinet() {
                           </button>
                         )}
                       </div>
-                      <div className="col-span-3 text-sm text-slate-300 hidden md:block truncate">
-                        {rel.label || rel.artist_name || "—"}
+                      <div className="col-span-3 hidden md:block min-w-0">
+                        <p className="text-sm text-slate-300 truncate">{rel.genre || "—"}</p>
+                        <p className="text-xs text-slate-500 truncate">{rel.label || "—"}</p>
                       </div>
-                      <div className="col-span-2 text-sm text-slate-300 hidden sm:block">
-                        {rel.genre || "Альбом"}
+                      <div className="col-span-2 text-sm text-slate-400 hidden sm:block">
+                        {rel.release_date || "—"}
                       </div>
-                      <div className="col-span-2 flex items-center gap-2">
-                        {rel.release_date && <span className="text-sm text-slate-300 hidden lg:block">{rel.release_date}</span>}
-                        <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[rel.status] || "bg-[#2a3a4a] text-slate-300"}`}>
+                      <div className="col-span-2">
+                        <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap font-medium ${STATUS_COLORS[rel.status] || "bg-[#2a3a4a] text-slate-300"}`}>
                           {STATUS_LABELS[rel.status] || rel.status}
                         </span>
                       </div>
