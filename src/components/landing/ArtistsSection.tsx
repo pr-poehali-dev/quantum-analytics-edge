@@ -1,28 +1,28 @@
 import { useRef, useEffect, useState } from "react";
 import Icon from "@/components/ui/icon";
 
-const artists = [
-  { name: "TomLuv", url: "https://music.yandex.ru/artist/17970337", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/8eb66602-d35a-4118-852d-3f6329c87dd0.jpg" },
-  { name: "Нэтшанэт", url: "https://music.yandex.ru/artist/24577979", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/f7d19650-b5a0-4229-b27e-b9b1977b886b.jpeg" },
-  { name: "VOINOVA", url: "https://music.yandex.ru/artist/11202759", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/9dc47e96-639b-4711-a409-7306d6eeb1c0.jpeg" },
-  { name: "808 FAY", url: "https://music.yandex.ru/artist/25131782", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/4866b3a1-ab4b-4b78-961e-852b475a16a0.jpeg" },
-  { name: "DIMUSIK", url: "https://music.yandex.ru/artist/16745184" },
-  { name: "Макс Чуев", url: "https://music.yandex.ru/artist/25536549" },
-  { name: "Lill Kiska", url: "https://music.yandex.ru/artist/23291999", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/d7f84708-bd5b-4310-8b00-9ee8452deca9.jpg" },
-  { name: "TBOU DRUG", url: "https://music.yandex.ru/artist/25067872", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/97f6f7d3-468a-43d2-84ea-fddb2d4afded.jpeg" },
-  { name: "StasFox", url: "https://music.yandex.ru/artist/24519124", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/43dcb379-258a-46fb-a18a-570a29543ec4.jpg" },
-  { name: "MAMATANK", url: "https://music.yandex.ru/artist/22126498", photo: "https://cdn.poehali.dev/projects/49f0dfee-d362-48aa-ab1c-67bc8f7671ea/bucket/ed623afb-ba3d-47ac-98c3-1ad96dfa6f79.jpeg" },
-];
+const BEATSTORE_BASE = "https://functions.poehali.dev/76bda3d9-5afb-4469-b432-9f145059aa2e";
 
-const getAvatarUrl = (artistId: string) =>
-  `https://avatars.yandex.net/get-music-artist-cover/${artistId}/200x200`;
-
-const extractId = (url: string) => url.split("/").pop() || "";
+interface Artist {
+  id: number;
+  name: string;
+  url: string | null;
+  photo_url: string | null;
+  sort_order: number;
+}
 
 const ArtistsSection = () => {
   const ref = useRef<HTMLElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [artists, setArtists] = useState<Artist[]>([]);
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    fetch(`${BEATSTORE_BASE}?action=list-artists`)
+      .then(r => r.json())
+      .then(data => setArtists(data.artists || []))
+      .catch(() => null);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -38,6 +38,8 @@ const ArtistsSection = () => {
   const handleImgError = (name: string) => {
     setImgErrors((prev) => ({ ...prev, [name]: true }));
   };
+
+  if (artists.length === 0) return null;
 
   return (
     <section ref={ref} id="artists" className="py-20 relative overflow-hidden">
@@ -57,14 +59,13 @@ const ArtistsSection = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {artists.map((artist, index) => {
-            const id = extractId(artist.url);
             const hasError = imgErrors[artist.name];
 
             return (
               <a
-                key={artist.name}
-                href={artist.url}
-                target="_blank"
+                key={artist.id}
+                href={artist.url || "#"}
+                target={artist.url ? "_blank" : undefined}
                 rel="noopener noreferrer"
                 className={`group relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 hover:border-purple-500/50 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-purple-900/20 ${
                   isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -72,15 +73,9 @@ const ArtistsSection = () => {
                 style={{ transitionDelay: `${index * 60}ms` }}
               >
                 <div className="aspect-square w-full overflow-hidden">
-                  {artist.photo ? (
+                  {artist.photo_url && !hasError ? (
                     <img
-                      src={artist.photo}
-                      alt={artist.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  ) : !hasError ? (
-                    <img
-                      src={`https://avatars.mds.yandex.net/get-music-artist-cover/${id}/200x200`}
+                      src={artist.photo_url}
                       alt={artist.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={() => handleImgError(artist.name)}
@@ -97,10 +92,12 @@ const ArtistsSection = () => {
                   <p className="text-white font-semibold text-sm leading-tight">
                     {artist.name}
                   </p>
-                  <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Icon name="ExternalLink" size={12} className="text-purple-400" />
-                    <span className="text-purple-400 text-xs">Яндекс Музыка</span>
-                  </div>
+                  {artist.url && (
+                    <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <Icon name="ExternalLink" size={12} className="text-purple-400" />
+                      <span className="text-purple-400 text-xs">Слушать</span>
+                    </div>
+                  )}
                 </div>
               </a>
             );

@@ -65,28 +65,61 @@ export default function AdminRadio() {
     setUploadProgress(10);
     setMsg("");
 
-    const fileData = await toBase64(audioFile);
-    setUploadProgress(50);
+    let fileData: string;
+    try {
+      fileData = await toBase64(audioFile);
+    } catch {
+      setMsg("Ошибка чтения файла");
+      setSaving(false);
+      setUploading(false);
+      setUploadProgress(0);
+      return;
+    }
+    setUploadProgress(40);
 
-    const res = await api.radio.uploadTrack({
-      title: form.title.trim(),
-      artist: form.artist.trim() || undefined,
-      file_data: fileData,
-      file_name: audioFile.name,
-      sort_order: parseInt(form.sort_order) || 0,
-    });
+    let res: Record<string, unknown>;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+      const r = await fetch(
+        `https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f?action=upload-radio-track`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Session-Token": localStorage.getItem("ks_token") || "" },
+          body: JSON.stringify({
+            title: form.title.trim(),
+            artist: form.artist.trim() || undefined,
+            file_data: fileData,
+            file_name: audioFile.name,
+            sort_order: parseInt(form.sort_order) || 0,
+          }),
+          signal: controller.signal,
+        }
+      );
+      clearTimeout(timeoutId);
+      setUploadProgress(90);
+      const text = await r.text();
+      try { res = JSON.parse(text); } catch { res = { error: `Ответ сервера: ${text.slice(0, 100)}` }; }
+    } catch (e: unknown) {
+      const msg = e instanceof Error && e.name === "AbortError" ? "Превышено время ожидания (2 мин). Попробуй файл меньшего размера." : "Ошибка сети при загрузке";
+      setMsg(msg);
+      setSaving(false);
+      setUploading(false);
+      setUploadProgress(0);
+      return;
+    }
 
     setUploadProgress(100);
     setUploading(false);
 
     if (res.track) {
-      setTracks(prev => [...prev, res.track]);
+      setTracks(prev => [...prev, res.track as RadioTrack]);
       setForm({ title: "", artist: "", sort_order: "0" });
       setAudioFile(null);
       setAdding(false);
       setMsg("Трек добавлен в плейлист");
     } else {
-      setMsg(res.error || "Ошибка загрузки");
+      setMsg((res.error as string) || "Ошибка загрузки");
     }
     setSaving(false);
     setUploadProgress(0);
@@ -167,7 +200,7 @@ export default function AdminRadio() {
           <input value={form.sort_order} onChange={e => setForm({ ...form, sort_order: e.target.value })} placeholder="Порядок (0, 1, 2...)" type="number" className={ic} />
 
           <div>
-            <p className="text-xs text-slate-400 mb-1.5">Аудиофайл</p>
+            <p className="text-xs text-slate-400 mb-1.5">Аудиофайл <span className="text-slate-600">(рекомендуется до 30 МБ)</span></p>
             <input ref={fileRef} type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg" onChange={e => setAudioFile(e.target.files?.[0] || null)} className="hidden" />
             <div className="flex items-center gap-3">
               {audioFile && (

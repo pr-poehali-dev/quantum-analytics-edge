@@ -180,7 +180,7 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
   const sc = "w-full bg-[#0f1923] border border-white/10 text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#f5a623]/40 transition-colors";
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
 
       {/* Заголовок */}
       <div className="flex items-center gap-3 mb-4">
@@ -214,10 +214,10 @@ export default function NewReleaseForm({ onCreated, onCancel, userArtistName }: 
         ))}
       </div>
 
-      <div className="flex gap-5 flex-1 min-h-0">
+      <div className="flex gap-5">
 
         {/* ── Основной контент ── */}
-        <div ref={scrollAreaRef} className="flex-1 min-w-0 overflow-y-auto pr-1 space-y-4">
+        <div ref={scrollAreaRef} className="flex-1 min-w-0 space-y-4">
 
           {/* ШАГ 1: РЕЛИЗ */}
           {step === "release" && (
