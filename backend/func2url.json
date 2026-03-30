@@ -1,4 +1,5 @@
 {
+  "ai-chat": "https://functions.poehali.dev/7f5d887d-207a-4139-bae7-942f37b95e46",
   "shots": "https://functions.poehali.dev/b4fdb0bf-57f9-4b94-8ead-c58dbd739c80",
   "suno-generate": "https://functions.poehali.dev/2747ca88-4546-49f4-99d9-add5fa468652",
   "generate-cover": "https://functions.poehali.dev/8773f1e2-7da7-4964-abdb-2b5566495669",
