@@ -340,23 +340,42 @@ def handler(event: dict, context) -> dict:
         releases = [{'id': r[0], 'title': r[1], 'artist_name': r[2], 'upc': r[3], 'cover_url': r[4], 'status': r[5], 'genre': r[6], 'release_date': str(r[7]) if r[7] else None, 'notes': r[8], 'created_at': str(r[9])} for r in cur.fetchall()]
         return ok({'releases': releases})
 
-    # Создать релиз (admin)
+    # Создать релиз (артист или admin)
     if action == 'releases' and method == 'POST':
         u = get_user(cur, token, schema)
-        if not u or u[1] != 'admin':
-            return err(403, 'Доступ запрещён')
+        if not u:
+            return err(401, 'Не авторизован')
         body = json.loads(event.get('body') or '{}')
-        uid = body.get('user_id')
+        uid = body.get('user_id') if u[1] == 'admin' else u[0]
         title = body.get('title', '').strip()
         if not uid or not title:
-            return err(400, 'Укажите артиста и название')
+            return err(400, 'Укажите название')
+        status = body.get('status', 'moderation') if u[1] == 'admin' else 'moderation'
         cur.execute(
-            f"INSERT INTO {schema}.releases (user_id, title, artist_name, upc, cover_url, status, genre, release_date, notes) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id, created_at",
-            (uid, title, body.get('artist_name'), body.get('upc') or None, body.get('cover_url') or None, body.get('status', 'moderation'), body.get('genre') or None, body.get('release_date') or None, body.get('notes') or None)
+            f"INSERT INTO {schema}.releases (user_id, title, artist_name, upc, cover_url, status, genre, release_date, notes, type, label) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id, created_at",
+            (uid, title, body.get('artist_name'), body.get('upc') or None, body.get('cover_url') or None, status, body.get('genre') or None, body.get('release_date') or None, body.get('notes') or None, body.get('type') or None, body.get('label') or None)
         )
         row = cur.fetchone()
         conn.commit()
-        rel = {'id': row[0], 'title': title, 'artist_name': body.get('artist_name'), 'upc': body.get('upc') or None, 'cover_url': body.get('cover_url') or None, 'status': body.get('status', 'moderation'), 'genre': body.get('genre') or None, 'release_date': body.get('release_date') or None, 'notes': body.get('notes') or None, 'created_at': str(row[1])}
+        rel = {'id': row[0], 'title': title, 'artist_name': body.get('artist_name'), 'upc': body.get('upc') or None, 'cover_url': body.get('cover_url') or None, 'status': status, 'genre': body.get('genre') or None, 'release_date': body.get('release_date') or None, 'notes': body.get('notes') or None, 'created_at': str(row[1])}
+
+        tg_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+        if tg_token and u[1] != 'admin':
+            cur.execute(f"SELECT email, artist_name FROM {schema}.users WHERE id = %s", (uid,))
+            uinfo = cur.fetchone()
+            aname = uinfo[1] if uinfo else 'Неизвестный'
+            aemail = uinfo[0] if uinfo else ''
+            tg_msg = (
+                f"🎶 *Новый релиз на модерацию*\n\n"
+                f"*Артист:* {aname}\n"
+                f"*Email:* {aemail}\n"
+                f"*Название:* {title}\n"
+                f"*Жанр:* {body.get('genre') or '—'}\n"
+                f"*Дата выхода:* {body.get('release_date') or '—'}\n"
+                f"_Релиз #{row[0]}_"
+            )
+            send_telegram(tg_token, tg_msg)
+
         return ok({'release': rel})
 
     # Обновить релиз (admin)

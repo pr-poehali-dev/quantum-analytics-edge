@@ -29,6 +29,15 @@
       "expectedStatus": 200,
       "expectedBody": {"tracks": []},
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create release without token — 401",
+      "method": "POST",
+      "path": "/?action=releases",
+      "body": {"title": "Test Release"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
     }
   ]
 }
