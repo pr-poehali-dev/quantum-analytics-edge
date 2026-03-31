@@ -123,6 +123,18 @@ export default function Cabinet() {
   const [changePwMsg, setChangePwMsg] = useState("");
   const [showChangePw, setShowChangePw] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showProfileMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (!profileMenuRef.current?.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showProfileMenu]);
   const [releaseFilter, setReleaseFilter] = useState("Все");
   const [releaseSearch, setReleaseSearch] = useState("");
   const [releaseView, setReleaseView] = useState<"table" | "grid">("table");
@@ -335,7 +347,7 @@ export default function Cabinet() {
             </Button>
 
             {/* Settings */}
-            <div className="relative">
+            <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(v => !v)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
@@ -347,9 +359,7 @@ export default function Cabinet() {
                 <Icon name="ChevronDown" size={14} className="text-white/40" />
               </button>
               {showProfileMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-[#131929] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-52 bg-[#131929] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-white/[0.06]">
                       <p className="text-sm font-semibold text-white">{user.artist_name}</p>
                       <p className="text-xs text-white/40">{user.email}</p>
@@ -369,7 +379,6 @@ export default function Cabinet() {
                       Выйти
                     </button>
                   </div>
-                </>
               )}
             </div>
           </div>
@@ -549,7 +558,7 @@ export default function Cabinet() {
                     value={releaseSearch}
                     onChange={(e) => setReleaseSearch(e.target.value)}
                     placeholder="Поиск по названию или артисту..."
-                    className="w-full bg-[#131929] border border-white/[0.06] text-white placeholder:text-white/25 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-[#f5a623]/40 transition-colors"
+                    className="w-full bg-[#131929] border border-white/[0.06] text-white placeholder:text-white/25 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition-colors"
                   />
                 </div>
                 <div className="flex items-center gap-1">
