@@ -115,6 +115,14 @@ export default function Cabinet() {
   const [uploading, setUploading] = useState(false);
   const [trackTitle, setTrackTitle] = useState("");
   const [sending, setSending] = useState(false);
+
+  // AI chat
+  type AiMsg = { role: "user" | "assistant" | "system"; content: string };
+  const [aiMessages, setAiMessages] = useState<AiMsg[]>([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [chatMode, setChatMode] = useState<"ai" | "human">("ai");
+  const aiChatRef = useRef<HTMLDivElement>(null);
   const [payingId, setPayingId] = useState<number | null>(null);
   const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
@@ -166,6 +174,28 @@ export default function Cabinet() {
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
+
+  useEffect(() => {
+    if (aiChatRef.current) aiChatRef.current.scrollTop = aiChatRef.current.scrollHeight;
+  }, [aiMessages, aiLoading]);
+
+  const handleAiSend = async () => {
+    const text = aiInput.trim();
+    if (!text || aiLoading) return;
+    const userMsg: AiMsg = { role: "user", content: text };
+    const newHistory = [...aiMessages, userMsg];
+    setAiMessages(newHistory);
+    setAiInput("");
+    setAiLoading(true);
+    const res = await api.aiChat.ask(text, aiMessages);
+    setAiLoading(false);
+    if (res.reply) {
+      setAiMessages([...newHistory, { role: "assistant", content: res.reply }]);
+      if (res.needs_human) setChatMode("human");
+    } else {
+      setAiMessages([...newHistory, { role: "assistant", content: "Произошла ошибка. Попробуй ещё раз или напиши менеджеру." }]);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1007,44 +1037,163 @@ export default function Cabinet() {
           {/* ===== CHAT ===== */}
           {tab === "chat" && (
             <div className="max-w-2xl">
-              <div className="mb-6">
-                <h2 className="text-xl font-bold">Поддержка</h2>
-                <p className="text-white/30 text-sm mt-0.5">Чат с командой лейбла</p>
-              </div>
-              <div className="bg-[#131929] border border-white/[0.06] rounded-2xl flex flex-col h-[540px]">
-                <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                      <div className="text-4xl mb-3 opacity-20">💬</div>
-                      <p className="text-white/30 text-sm">Напиши первое сообщение команде лейбла</p>
-                    </div>
-                  )}
-                  {messages.map((m) => (
-                    <div key={m.id} className={`flex ${m.sender_role === "artist" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${m.sender_role === "artist" ? "bg-[#f5a623] text-black font-medium" : "bg-[#0a0e1a] text-white border border-white/[0.06]"}`}>
-                        {m.sender_role === "admin" && <p className="text-xs text-white/40 mb-1 font-semibold">Лейбл</p>}
-                        <p>{m.text}</p>
-                      </div>
-                    </div>
-                  ))}
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">Поддержка</h2>
+                  <p className="text-white/30 text-sm mt-0.5">
+                    {chatMode === "ai" ? "AI-ассистент лейбла" : "Чат с командой лейбла"}
+                  </p>
                 </div>
-                <div className="p-4 border-t border-white/[0.06] flex gap-2">
-                  <Input
-                    value={msgText}
-                    onChange={(e) => setMsgText(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    placeholder="Написать сообщение..."
-                    className="bg-[#0a0e1a] border-white/[0.06] text-white placeholder:text-white/25"
-                  />
-                  <Button
-                    onClick={handleSend}
-                    disabled={sending || !msgText.trim()}
-                    className="bg-[#f5a623] text-black hover:bg-[#e8952a] shrink-0"
+                <div className="flex items-center gap-1 bg-[#131929] border border-white/[0.06] rounded-xl p-1">
+                  <button
+                    onClick={() => setChatMode("ai")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${chatMode === "ai" ? "bg-[#f5a623] text-black" : "text-white/40 hover:text-white"}`}
                   >
-                    <Icon name="Send" size={16} />
-                  </Button>
+                    AI-агент
+                  </button>
+                  <button
+                    onClick={() => setChatMode("human")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${chatMode === "human" ? "bg-[#f5a623] text-black" : "text-white/40 hover:text-white"}`}
+                  >
+                    Менеджер
+                  </button>
                 </div>
               </div>
+
+              {/* AI Chat */}
+              {chatMode === "ai" && (
+                <div className="bg-[#131929] border border-white/[0.06] rounded-2xl flex flex-col h-[540px]">
+                  <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-[#f5a623]/20 flex items-center justify-center">
+                      <Icon name="Sparkles" size={14} className="text-[#f5a623]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">AI-ассистент</p>
+                      <p className="text-xs text-white/30">Отвечает мгновенно</p>
+                    </div>
+                    <div className="ml-auto w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  </div>
+                  <div ref={aiChatRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {aiMessages.length === 0 && (
+                      <div className="flex flex-col items-center justify-center h-full text-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-[#f5a623]/10 flex items-center justify-center">
+                          <Icon name="Sparkles" size={22} className="text-[#f5a623]" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">Привет! Я AI-ассистент лейбла</p>
+                          <p className="text-white/30 text-xs mt-1">Спроси про релизы, дистрибьюцию, роялти или статусы</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 justify-center mt-1">
+                          {["Сколько ждать публикацию?", "Какой формат обложки?", "Где мои роялти?"].map(q => (
+                            <button
+                              key={q}
+                              onClick={() => { setAiInput(q); }}
+                              className="text-xs bg-white/5 hover:bg-white/10 border border-white/[0.06] rounded-full px-3 py-1.5 text-white/50 hover:text-white transition-all"
+                            >
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {aiMessages.map((m, i) => (
+                      <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                        {m.role === "assistant" && (
+                          <div className="w-6 h-6 rounded-full bg-[#f5a623]/20 flex items-center justify-center shrink-0 mr-2 mt-1">
+                            <Icon name="Sparkles" size={11} className="text-[#f5a623]" />
+                          </div>
+                        )}
+                        <div className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${m.role === "user" ? "bg-[#f5a623] text-black font-medium" : "bg-[#0a0e1a] text-white border border-white/[0.06]"}`}>
+                          {m.content}
+                        </div>
+                      </div>
+                    ))}
+                    {aiLoading && (
+                      <div className="flex justify-start">
+                        <div className="w-6 h-6 rounded-full bg-[#f5a623]/20 flex items-center justify-center shrink-0 mr-2 mt-1">
+                          <Icon name="Sparkles" size={11} className="text-[#f5a623]" />
+                        </div>
+                        <div className="bg-[#0a0e1a] border border-white/[0.06] rounded-2xl px-4 py-3 flex gap-1 items-center">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{animationDelay:"0ms"}} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{animationDelay:"150ms"}} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{animationDelay:"300ms"}} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 border-t border-white/[0.06]">
+                    <div className="flex gap-2">
+                      <input
+                        value={aiInput}
+                        onChange={(e) => setAiInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAiSend()}
+                        placeholder="Задай вопрос AI-ассистенту..."
+                        className="flex-1 bg-[#0a0e1a] border border-white/[0.06] text-white placeholder:text-white/25 rounded-xl px-4 py-2.5 text-sm outline-none"
+                      />
+                      <Button
+                        onClick={handleAiSend}
+                        disabled={aiLoading || !aiInput.trim()}
+                        className="bg-[#f5a623] text-black hover:bg-[#e8952a] shrink-0"
+                      >
+                        <Icon name="Send" size={16} />
+                      </Button>
+                    </div>
+                    <button
+                      onClick={() => setChatMode("human")}
+                      className="mt-2 text-xs text-white/25 hover:text-white/50 transition-colors w-full text-center"
+                    >
+                      Нужна помощь живого менеджера →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Human Chat */}
+              {chatMode === "human" && (
+                <div className="bg-[#131929] border border-white/[0.06] rounded-2xl flex flex-col h-[540px]">
+                  <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
+                      <Icon name="Users" size={14} className="text-white/60" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Команда лейбла</p>
+                      <p className="text-xs text-white/30">Отвечаем в рабочее время</p>
+                    </div>
+                  </div>
+                  <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {messages.length === 0 && (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <div className="text-4xl mb-3 opacity-20">💬</div>
+                        <p className="text-white/30 text-sm">Напиши первое сообщение команде лейбла</p>
+                      </div>
+                    )}
+                    {messages.map((m) => (
+                      <div key={m.id} className={`flex ${m.sender_role === "artist" ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${m.sender_role === "artist" ? "bg-[#f5a623] text-black font-medium" : "bg-[#0a0e1a] text-white border border-white/[0.06]"}`}>
+                          {m.sender_role === "admin" && <p className="text-xs text-white/40 mb-1 font-semibold">Лейбл</p>}
+                          <p>{m.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-4 border-t border-white/[0.06] flex gap-2">
+                    <Input
+                      value={msgText}
+                      onChange={(e) => setMsgText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                      placeholder="Написать сообщение..."
+                      className="bg-[#0a0e1a] border-white/[0.06] text-white placeholder:text-white/25"
+                    />
+                    <Button
+                      onClick={handleSend}
+                      disabled={sending || !msgText.trim()}
+                      className="bg-[#f5a623] text-black hover:bg-[#e8952a] shrink-0"
+                    >
+                      <Icon name="Send" size={16} />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

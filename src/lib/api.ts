@@ -6,6 +6,7 @@ const SMARTLINK_BASE = "https://functions.poehali.dev/a881dc8f-d2db-4da3-b755-0d
 const BEATSTORE_BASE = "https://functions.poehali.dev/76bda3d9-5afb-4469-b432-9f145059aa2e";
 const GENERATE_COVER_BASE = "https://functions.poehali.dev/8773f1e2-7da7-4964-abdb-2b5566495669";
 const SUNO_BASE = "https://functions.poehali.dev/2747ca88-4546-49f4-99d9-add5fa468652";
+const AI_CHAT_BASE = "https://functions.poehali.dev/7f5d887d-207a-4139-bae7-942f37b95e46";
 
 function token() { return localStorage.getItem("ks_token") || ""; }
 function headers() { return { "Content-Type": "application/json", "X-Session-Token": token() }; }
@@ -45,6 +46,10 @@ export const api = {
   chat: {
     messages: (userId?: number) => get("messages", userId ? `&user_id=${userId}` : ""),
     send: (text: string, userId?: number) => post("send-message", { text, ...(userId ? { user_id: userId } : {}) }),
+  },
+  aiChat: {
+    ask: (message: string, history: {role: string; content: string}[]) =>
+      fetch(AI_CHAT_BASE, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, history }) }).then(r => r.json()),
   },
   admin: {
     artists: () => get("artists"),
