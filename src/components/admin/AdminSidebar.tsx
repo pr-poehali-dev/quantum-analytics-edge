@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 
 type SideTab = "artists" | "create-user" | "label-news" | "site-artists" | "radio";
 
-interface Artist { id: number; email: string; artist_name: string; created_at: string; }
+interface Artist { id: number; email: string; artist_name: string; created_at: string; is_verified: boolean; }
 
 interface Props {
   sideTab: SideTab;
@@ -64,7 +64,14 @@ export default function AdminSidebar({ sideTab, setSideTab, artists, selectedId,
                 onClick={() => onSelectArtist(a)}
                 className={`w-full text-left px-3 py-2.5 rounded-lg mb-1 transition-colors ${selectedId === a.id ? "bg-white text-black" : "text-zinc-300 hover:bg-zinc-900"}`}
               >
-                <p className="font-medium text-sm">{a.artist_name}</p>
+                <div className="flex items-center gap-1">
+                  <p className="font-medium text-sm">{a.artist_name}</p>
+                  {a.is_verified && (
+                    <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#1DA1F2] shrink-0">
+                      <svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </span>
+                  )}
+                </div>
                 <p className={`text-xs mt-0.5 ${selectedId === a.id ? "text-zinc-600" : "text-zinc-500"}`}>{a.email}</p>
               </button>
             ))}

@@ -155,6 +155,8 @@ export const api = {
   },
   shots: {
     feed: (params?: string) => fetch(`${SHOTS_BASE}?action=feed${params || ''}`, { headers: headers() }).then(r => r.json()),
+    presign: (data: object) => fetch(`${SHOTS_BASE}?action=presign`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+    save: (data: object) => fetch(`${SHOTS_BASE}?action=save`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     upload: (data: object) => fetch(`${SHOTS_BASE}?action=upload`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     like: (shot_id: number) => fetch(`${SHOTS_BASE}?action=like`, { method: 'POST', headers: headers(), body: JSON.stringify({ shot_id }) }).then(r => r.json()),
     comments: (shot_id: number) => fetch(`${SHOTS_BASE}?action=comments&shot_id=${shot_id}`, { headers: headers() }).then(r => r.json()),
@@ -162,5 +164,8 @@ export const api = {
     delete: (shot_id: number) => fetch(`${SHOTS_BASE}?action=delete`, { method: 'POST', headers: headers(), body: JSON.stringify({ shot_id }) }).then(r => r.json()),
     view: (shot_id: number) => fetch(`${SHOTS_BASE}?action=view`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shot_id }) }).then(r => r.json()),
     myStats: () => fetch(`${SHOTS_BASE}?action=my-stats`, { headers: headers() }).then(r => r.json()),
+  },
+  admin: {
+    verifyArtist: (user_id: number, verified: boolean) => post("verify-artist", { user_id, verified }),
   },
 };

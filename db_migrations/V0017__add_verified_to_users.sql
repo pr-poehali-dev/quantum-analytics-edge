@@ -1,0 +1,1 @@
+ALTER TABLE t_p40522734_quantum_analytics_ed.users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE;

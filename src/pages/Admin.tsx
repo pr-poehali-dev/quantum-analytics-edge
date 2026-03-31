@@ -16,7 +16,7 @@ type SideTab = "artists" | "create-user" | "label-news" | "site-artists" | "radi
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 interface VisitStats { online: number; today: number; week: number; month: number; top_pages: {page: string; visits: number}[]; daily: {date: string; visits: number}[]; }
-interface Artist { id: number; email: string; artist_name: string; created_at: string; }
+interface Artist { id: number; email: string; artist_name: string; created_at: string; is_verified: boolean; }
 interface Track { id: number; title: string; file_name: string; file_url: string; status: string; notes: string; }
 interface Contract { id: number; title: string; contract_status: string; payment_status: string; amount: string; notes: string; }
 interface Message { id: number; sender_role: string; text: string; created_at: string; }

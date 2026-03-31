@@ -6,6 +6,7 @@ interface User {
   email: string;
   artist_name: string;
   role: "artist" | "admin";
+  is_verified?: boolean;
 }
 
 interface AuthContextType {

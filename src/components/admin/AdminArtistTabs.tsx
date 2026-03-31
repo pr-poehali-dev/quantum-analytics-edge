@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 
 type Tab = "materials" | "releases" | "stats" | "royalties" | "chat" | "documents" | "requests";
 
-interface Artist { id: number; email: string; artist_name: string; created_at: string; }
+interface Artist { id: number; email: string; artist_name: string; created_at: string; is_verified: boolean; }
 interface Track { id: number; title: string; file_name: string; file_url: string; status: string; notes: string; }
 interface Contract { id: number; title: string; contract_status: string; payment_status: string; amount: string; notes: string; }
 interface Message { id: number; sender_role: string; text: string; created_at: string; }
@@ -156,10 +156,32 @@ export default function AdminArtistTabs(props: Props) {
         <button onClick={onBack} className="text-zinc-500 hover:text-white">
           <Icon name="ChevronLeft" size={20} />
         </button>
-        <div>
-          <h1 className="text-2xl font-bold">{selected.artist_name}</h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{selected.artist_name}</h1>
+            {selected.is_verified && (
+              <span title="Верифицирован" className="flex items-center justify-center w-5 h-5 rounded-full bg-[#1DA1F2]">
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>
+            )}
+          </div>
           <p className="text-zinc-500 text-sm">{selected.email}</p>
         </div>
+        <button
+          onClick={async () => {
+            const res = await api.admin.verifyArtist(selected.id, !selected.is_verified);
+            if (res.ok) {
+              selected.is_verified = !selected.is_verified;
+              window.location.reload();
+            }
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${selected.is_verified ? "bg-[#1DA1F2]/20 text-[#1DA1F2] hover:bg-red-500/20 hover:text-red-400" : "bg-white/5 text-zinc-400 hover:bg-[#1DA1F2]/20 hover:text-[#1DA1F2]"}`}
+        >
+          <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[#1DA1F2]">
+            <svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </span>
+          {selected.is_verified ? "Снять верификацию" : "Верифицировать"}
+        </button>
       </div>
 
       <div className="flex gap-1 mb-6 bg-zinc-900 rounded-xl p-1 max-w-3xl overflow-x-auto">

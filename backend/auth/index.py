@@ -167,7 +167,7 @@ def handler(event: dict, context) -> dict:
             if not token:
                 return err(401, 'Не авторизован')
             cur.execute(f'''
-                SELECT u.id, u.email, u.artist_name, u.role
+                SELECT u.id, u.email, u.artist_name, u.role, u.is_verified
                 FROM {schema}.sessions s
                 JOIN {schema}.users u ON u.id = s.user_id
                 WHERE s.token = %s AND s.expires_at > NOW()
@@ -175,7 +175,7 @@ def handler(event: dict, context) -> dict:
             user = cur.fetchone()
             if not user:
                 return err(401, 'Сессия истекла')
-            return ok({'user': {'id': user[0], 'email': user[1], 'artist_name': user[2], 'role': user[3]}})
+            return ok({'user': {'id': user[0], 'email': user[1], 'artist_name': user[2], 'role': user[3], 'is_verified': user[4]}})
 
         # Выход
         if action == 'logout' and method == 'POST':

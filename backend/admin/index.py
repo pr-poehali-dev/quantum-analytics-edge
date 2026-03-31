@@ -149,9 +149,23 @@ def handler(event: dict, context) -> dict:
         u = get_user(cur, token, schema)
         if not u or u[1] != 'admin':
             return err(403, 'Доступ запрещён')
-        cur.execute(f"SELECT id, email, artist_name, created_at FROM {schema}.users WHERE role = 'artist' ORDER BY created_at DESC")
-        artists = [{'id': r[0], 'email': r[1], 'artist_name': r[2], 'created_at': str(r[3])} for r in cur.fetchall()]
+        cur.execute(f"SELECT id, email, artist_name, created_at, is_verified FROM {schema}.users WHERE role = 'artist' ORDER BY created_at DESC")
+        artists = [{'id': r[0], 'email': r[1], 'artist_name': r[2], 'created_at': str(r[3]), 'is_verified': r[4]} for r in cur.fetchall()]
         return ok({'artists': artists})
+
+    # Верификация артиста (admin)
+    if action == 'verify-artist' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u or u[1] != 'admin':
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        artist_id = body.get('user_id')
+        verified = bool(body.get('verified', True))
+        if not artist_id:
+            return err(400, 'Укажите user_id')
+        cur.execute(f"UPDATE {schema}.users SET is_verified = %s WHERE id = %s AND role = 'artist'", (verified, artist_id))
+        conn.commit()
+        return ok({'ok': True, 'is_verified': verified})
 
     # Создать аккаунт артиста (admin)
     if action == 'create-user' and method == 'POST':

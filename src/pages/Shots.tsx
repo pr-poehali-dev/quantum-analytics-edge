@@ -40,20 +40,35 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
   const videoRef = useRef<HTMLInputElement>(null);
   const thumbRef = useRef<HTMLInputElement>(null);
 
-  const toBase64 = (f: File): Promise<string> =>
-    new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res((r.result as string).split(",")[1]); r.onerror = rej; r.readAsDataURL(f); });
-
   const handleUpload = async () => {
     if (!title.trim() || !videoFile) { setError("Укажите название и видеофайл"); return; }
     setUploading(true); setError("");
-    setProgress("Загружаем видео...");
-    const video_data = await toBase64(videoFile);
-    let thumb_data, thumb_name;
-    if (thumbFile) { thumb_data = await toBase64(thumbFile); thumb_name = thumbFile.name; }
-    const res = await api.shots.upload({ title, description: description || undefined, video_data, video_name: videoFile.name, thumb_data, thumb_name });
-    setUploading(false); setProgress("");
-    if (res.shot) { onUploaded(res.shot); onClose(); }
-    else setError(res.error || "Ошибка загрузки");
+    try {
+      setProgress("Получаем ссылку для загрузки...");
+      const presign = await api.shots.presign({ video_name: videoFile.name, thumb_name: thumbFile?.name || "" });
+      if (!presign.video_upload_url) { setError(presign.error || "Ошибка получения ссылки"); setUploading(false); setProgress(""); return; }
+
+      setProgress("Загружаем видео...");
+      const videoExt = videoFile.name.rsplit ? videoFile.name.split(".").pop()?.toLowerCase() : "mp4";
+      const videoTypes: Record<string, string> = { mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm", avi: "video/x-msvideo" };
+      await fetch(presign.video_upload_url, { method: "PUT", body: videoFile, headers: { "Content-Type": videoTypes[videoExt || "mp4"] || "video/mp4" } });
+
+      if (thumbFile && presign.thumb_upload_url) {
+        setProgress("Загружаем превью...");
+        const tExt = thumbFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const imgTypes: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
+        await fetch(presign.thumb_upload_url, { method: "PUT", body: thumbFile, headers: { "Content-Type": imgTypes[tExt] || "image/jpeg" } });
+      }
+
+      setProgress("Сохраняем...");
+      const res = await api.shots.save({ title, description: description || undefined, video_url: presign.video_url, thumbnail_url: thumbFile ? presign.thumb_url : undefined });
+      setUploading(false); setProgress("");
+      if (res.shot) { onUploaded(res.shot); onClose(); }
+      else setError(res.error || "Ошибка сохранения");
+    } catch {
+      setError("Ошибка загрузки. Проверьте файл и попробуйте ещё раз.");
+      setUploading(false); setProgress("");
+    }
   };
 
   const ic = "w-full bg-black/40 border border-white/10 text-white placeholder:text-white/30 rounded-xl px-4 py-3 text-sm outline-none focus:border-white/30 transition-colors";

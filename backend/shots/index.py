@@ -103,7 +103,63 @@ def handler(event: dict, context) -> dict:
         cur.close(); conn.close()
         return ok({'shots': shots})
 
-    # ─── Загрузить видео ────────────────────────────────────────────────────
+    # ─── Получить presigned URL для загрузки видео напрямую в S3 ──────────
+    if action == 'presign' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u:
+            cur.close(); conn.close()
+            return err(401, 'Требуется авторизация')
+        body = json.loads(event.get('body') or '{}')
+        video_name = str(body.get('video_name', 'video.mp4'))
+        thumb_name = str(body.get('thumb_name', ''))
+        ext = video_name.rsplit('.', 1)[-1].lower() if '.' in video_name else 'mp4'
+        video_key = f'shots/{uuid.uuid4()}.{ext}'
+        video_types = {'mp4': 'video/mp4', 'mov': 'video/quicktime', 'webm': 'video/webm', 'avi': 'video/x-msvideo'}
+        content_type = video_types.get(ext, 'video/mp4')
+        s3 = get_s3()
+        video_presign = s3.generate_presigned_url('put_object', Params={'Bucket': 'files', 'Key': video_key, 'ContentType': content_type}, ExpiresIn=3600)
+        video_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{video_key}"
+        thumb_presign = None
+        thumb_url = None
+        if thumb_name:
+            t_ext = thumb_name.rsplit('.', 1)[-1].lower() if '.' in thumb_name else 'jpg'
+            t_key = f'shots/thumbs/{uuid.uuid4()}.{t_ext}'
+            img_types = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}
+            t_ct = img_types.get(t_ext, 'image/jpeg')
+            thumb_presign = s3.generate_presigned_url('put_object', Params={'Bucket': 'files', 'Key': t_key, 'ContentType': t_ct}, ExpiresIn=3600)
+            thumb_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{t_key}"
+        cur.close(); conn.close()
+        return ok({'video_upload_url': video_presign, 'video_url': video_url, 'thumb_upload_url': thumb_presign, 'thumb_url': thumb_url})
+
+    # ─── Сохранить видеошот после загрузки в S3 ────────────────────────────
+    if action == 'save' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u:
+            cur.close(); conn.close()
+            return err(401, 'Требуется авторизация')
+        body = json.loads(event.get('body') or '{}')
+        title = str(body.get('title', '')).strip()
+        description = str(body.get('description', '')).strip()
+        video_url = str(body.get('video_url', '')).strip()
+        thumbnail_url = body.get('thumbnail_url') or None
+        if not title or not video_url:
+            cur.close(); conn.close()
+            return err(400, 'Укажите название и video_url')
+        cur.execute(f"""
+            INSERT INTO {schema}.shots (user_id, title, description, video_url, thumbnail_url)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at
+        """, (u[0], title, description or None, video_url, thumbnail_url))
+        row = cur.fetchone()
+        conn.commit()
+        cur.close(); conn.close()
+        return ok({'shot': {
+            'id': row[0], 'title': title, 'video_url': video_url,
+            'thumbnail_url': thumbnail_url, 'artist_name': u[2],
+            'created_at': str(row[1]), 'likes_count': 0, 'comments_count': 0,
+            'views': 0, 'liked': False, 'is_owner': True,
+        }})
+
+    # ─── Загрузить видео (legacy: base64, для небольших файлов) ────────────
     if action == 'upload' and method == 'POST':
         u = get_user(cur, token, schema)
         if not u:

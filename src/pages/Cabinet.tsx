@@ -336,7 +336,14 @@ export default function Cabinet() {
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white truncate">{user.artist_name}</p>
+              <div className="flex items-center gap-1">
+                <p className="text-sm font-semibold text-white truncate">{user.artist_name}</p>
+                {user.is_verified && (
+                  <span title="Верифицированный артист" className="flex items-center justify-center w-4 h-4 rounded-full bg-[#1DA1F2] shrink-0">
+                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-white/30 truncate">{user.email}</p>
             </div>
             <button
@@ -385,7 +392,14 @@ export default function Cabinet() {
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#f5a623] to-[#e8952a] flex items-center justify-center text-black font-bold text-xs">
                   {initials}
                 </div>
-                <span className="text-sm font-medium hidden sm:block">{user.artist_name}</span>
+                <div className="hidden sm:flex items-center gap-1">
+                  <span className="text-sm font-medium">{user.artist_name}</span>
+                  {user.is_verified && (
+                    <span title="Верифицированный артист" className="flex items-center justify-center w-4 h-4 rounded-full bg-[#1DA1F2] shrink-0">
+                      <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </span>
+                  )}
+                </div>
                 <Icon name="ChevronDown" size={14} className="text-white/40" />
               </button>
               {showProfileMenu && (
