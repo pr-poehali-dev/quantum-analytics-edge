@@ -145,7 +145,7 @@ def handler(event: dict, context) -> dict:
 
             pw_hash = hash_password(password)
             cur.execute(
-                f'SELECT id, email, artist_name, role FROM {schema}.users WHERE email = %s AND password_hash = %s',
+                f'SELECT id, email, artist_name, role, is_verified FROM {schema}.users WHERE email = %s AND password_hash = %s',
                 (email, pw_hash)
             )
             user = cur.fetchone()
@@ -159,7 +159,7 @@ def handler(event: dict, context) -> dict:
                 (user[0], token, expires)
             )
             conn.commit()
-            return ok({'token': token, 'user': {'id': user[0], 'email': user[1], 'artist_name': user[2], 'role': user[3]}})
+            return ok({'token': token, 'user': {'id': user[0], 'email': user[1], 'artist_name': user[2], 'role': user[3], 'is_verified': user[4]}})
 
         # Проверка токена
         if action == 'me' and method == 'GET':

@@ -60,6 +60,7 @@ export const api = {
     artistTracks: (userId: number) => fetch(`${TRACKS}?user_id=${userId}`, { headers: headers() }).then(r => r.json()),
     artistMessages: (userId: number) => get("messages", `&user_id=${userId}`),
     sendMessage: (text: string, userId: number) => post("send-message", { text, user_id: userId }),
+    verifyArtist: (user_id: number, verified: boolean) => post("verify-artist", { user_id, verified }),
   },
   payment: {
     create: (contractId: number, returnUrl: string) => post("pay", { contract_id: contractId, return_url: returnUrl }),
@@ -164,8 +165,5 @@ export const api = {
     delete: (shot_id: number) => fetch(`${SHOTS_BASE}?action=delete`, { method: 'POST', headers: headers(), body: JSON.stringify({ shot_id }) }).then(r => r.json()),
     view: (shot_id: number) => fetch(`${SHOTS_BASE}?action=view`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shot_id }) }).then(r => r.json()),
     myStats: () => fetch(`${SHOTS_BASE}?action=my-stats`, { headers: headers() }).then(r => r.json()),
-  },
-  admin: {
-    verifyArtist: (user_id: number, verified: boolean) => post("verify-artist", { user_id, verified }),
   },
 };

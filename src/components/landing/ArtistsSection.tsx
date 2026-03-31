@@ -15,31 +15,30 @@ const ArtistsSection = () => {
   const ref = useRef<HTMLElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [artists, setArtists] = useState<Artist[]>([]);
-  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
+  const [loaded, setLoaded] = useState(false);
+  const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     fetch(`${BEATSTORE_BASE}?action=list-artists`)
       .then(r => r.json())
-      .then(data => setArtists(data.artists || []))
-      .catch(() => null);
+      .then(data => { setArtists(data.artists || []); setLoaded(true); })
+      .catch(() => setLoaded(true));
   }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setIsVisible(true);
-      },
+      ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
       { threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
-  const handleImgError = (name: string) => {
-    setImgErrors((prev) => ({ ...prev, [name]: true }));
+  const handleImgError = (id: number) => {
+    setImgErrors((prev) => ({ ...prev, [id]: true }));
   };
 
-  if (artists.length === 0) return null;
+  if (!loaded || artists.length === 0) return null;
 
   return (
     <section ref={ref} id="artists" className="py-20 relative overflow-hidden">
@@ -59,7 +58,7 @@ const ArtistsSection = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {artists.map((artist, index) => {
-            const hasError = imgErrors[artist.name];
+            const hasError = imgErrors[artist.id];
 
             return (
               <a
@@ -78,7 +77,7 @@ const ArtistsSection = () => {
                       src={artist.photo_url}
                       alt={artist.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      onError={() => handleImgError(artist.name)}
+                      onError={() => handleImgError(artist.id)}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-zinc-800">
