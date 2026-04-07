@@ -26,13 +26,21 @@ const ArtistsSection = () => {
   }, []);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
-      { threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
+    if (!loaded) return;
+    // Небольшая задержка чтобы DOM обновился, потом проверяем видимость
+    const timer = setTimeout(() => {
+      if (!ref.current) { setIsVisible(true); return; }
+      const rect = ref.current.getBoundingClientRect();
+      if (rect.top < window.innerHeight) { setIsVisible(true); return; }
+      const observer = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
+        { threshold: 0.05 }
+      );
+      observer.observe(ref.current);
+      return () => observer.disconnect();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [loaded]);
 
   const handleImgError = (id: number) => {
     setImgErrors((prev) => ({ ...prev, [id]: true }));
