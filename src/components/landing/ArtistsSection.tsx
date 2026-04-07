@@ -19,10 +19,24 @@ const ArtistsSection = () => {
   const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
-    fetch(`${BEATSTORE_BASE}?action=list-artists`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then(data => { setArtists(data.artists || []); setLoaded(true); })
-      .catch(() => setLoaded(true));
+    const load = (attempt = 1) => {
+      fetch(`${BEATSTORE_BASE}?action=list-artists&_t=${Date.now()}`, { cache: 'no-store' })
+        .then(r => r.json())
+        .then(data => {
+          const list = Array.isArray(data.artists) ? data.artists : [];
+          if (list.length === 0 && attempt < 3) {
+            setTimeout(() => load(attempt + 1), 1500 * attempt);
+          } else {
+            setArtists(list);
+            setLoaded(true);
+          }
+        })
+        .catch(() => {
+          if (attempt < 3) setTimeout(() => load(attempt + 1), 1500 * attempt);
+          else setLoaded(true);
+        });
+    };
+    load();
   }, []);
 
   useEffect(() => {
