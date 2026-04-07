@@ -6,6 +6,7 @@ import {
   PromoPackages,
   AboutSection,
   ArtistsSection,
+  NewsSection,
   DemoSection,
   ContactSection,
   Footer,
@@ -48,6 +49,7 @@ const Index = () => {
           <PromoPackages />
           <AboutSection />
           <ArtistsSection />
+          <NewsSection />
           <DemoSection />
           <ContactSection />
         </main>

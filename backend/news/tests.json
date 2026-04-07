@@ -1,0 +1,8 @@
+{
+  "tests": [
+    {"name": "OPTIONS preflight", "method": "OPTIONS", "path": "/", "expectedStatus": 200},
+    {"name": "Публичный список новостей", "method": "GET", "path": "/?action=get-news", "expectedStatus": 200, "expectedBody": {"news": []}, "bodyMatcher": "partial"},
+    {"name": "Добавить без токена — 403", "method": "POST", "path": "/?action=add-news", "body": {"title": "Test", "body": "Text"}, "expectedStatus": 403},
+    {"name": "Удалить без токена — 403", "method": "POST", "path": "/?action=del-news", "body": {"id": 1}, "expectedStatus": 403}
+  ]
+}

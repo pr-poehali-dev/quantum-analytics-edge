@@ -1,4 +1,5 @@
 const BASE = "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f";
+const NEWS_BASE = "https://functions.poehali.dev/30176f0e-4ac6-48e2-a2f4-8fb16a5630d6";
 const SHOTS_BASE = "https://functions.poehali.dev/b4fdb0bf-57f9-4b94-8ead-c58dbd739c80";
 const TRACKS = "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2";
 const AUTH = "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c";
@@ -165,5 +166,12 @@ export const api = {
     delete: (shot_id: number) => fetch(`${SHOTS_BASE}?action=delete`, { method: 'POST', headers: headers(), body: JSON.stringify({ shot_id }) }).then(r => r.json()),
     view: (shot_id: number) => fetch(`${SHOTS_BASE}?action=view`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shot_id }) }).then(r => r.json()),
     myStats: () => fetch(`${SHOTS_BASE}?action=my-stats`, { headers: headers() }).then(r => r.json()),
+  },
+  news: {
+    list: (limit = 20, offset = 0) => fetch(`${NEWS_BASE}?action=get-news&limit=${limit}&offset=${offset}`).then(r => r.json()),
+    adminList: () => fetch(`${NEWS_BASE}?action=admin-news`, { headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token() } }).then(r => r.json()),
+    add: (data: object) => fetch(`${NEWS_BASE}?action=add-news`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token() }, body: JSON.stringify(data) }).then(r => r.json()),
+    update: (data: object) => fetch(`${NEWS_BASE}?action=update-news`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token() }, body: JSON.stringify(data) }).then(r => r.json()),
+    del: (id: number) => fetch(`${NEWS_BASE}?action=del-news`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token() }, body: JSON.stringify({ id }) }).then(r => r.json()),
   },
 };
