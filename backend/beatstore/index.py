@@ -19,8 +19,11 @@ CORS = {
 def get_conn():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
-def ok(data):
-    return {'statusCode': 200, 'headers': {**CORS, 'Content-Type': 'application/json'}, 'body': json.dumps(data, ensure_ascii=False, default=str)}
+def ok(data, no_cache=False):
+    headers = {**CORS, 'Content-Type': 'application/json'}
+    if no_cache:
+        headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return {'statusCode': 200, 'headers': headers, 'body': json.dumps(data, ensure_ascii=False, default=str)}
 
 def err(status, msg):
     return {'statusCode': status, 'headers': {**CORS, 'Content-Type': 'application/json'}, 'body': json.dumps({'error': msg}, ensure_ascii=False)}
@@ -327,7 +330,7 @@ def handler(event: dict, context) -> dict:
         rows = cur.fetchall()
         artists = [{'id': r[0], 'name': r[1], 'url': r[2], 'photo_url': r[3], 'sort_order': r[4]} for r in rows]
         cur.close(); conn.close()
-        return ok({'artists': artists})
+        return ok({'artists': artists}, no_cache=True)
 
     # ─── АДМИН: все артисты (включая скрытых) ─────────────────────────────
     if action == 'admin-artists' and method == 'GET':

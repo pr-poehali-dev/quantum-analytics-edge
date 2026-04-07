@@ -19,28 +19,27 @@ const ArtistsSection = () => {
   const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
-    fetch(`${BEATSTORE_BASE}?action=list-artists`)
+    fetch(`${BEATSTORE_BASE}?action=list-artists`, { cache: 'no-store' })
       .then(r => r.json())
       .then(data => { setArtists(data.artists || []); setLoaded(true); })
       .catch(() => setLoaded(true));
   }, []);
 
   useEffect(() => {
-    if (!loaded) return;
-    // Небольшая задержка чтобы DOM обновился, потом проверяем видимость
+    if (!loaded || artists.length === 0) return;
+    let observer: IntersectionObserver | null = null;
     const timer = setTimeout(() => {
       if (!ref.current) { setIsVisible(true); return; }
       const rect = ref.current.getBoundingClientRect();
       if (rect.top < window.innerHeight) { setIsVisible(true); return; }
-      const observer = new IntersectionObserver(
+      observer = new IntersectionObserver(
         ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
         { threshold: 0.05 }
       );
       observer.observe(ref.current);
-      return () => observer.disconnect();
     }, 50);
-    return () => clearTimeout(timer);
-  }, [loaded]);
+    return () => { clearTimeout(timer); observer?.disconnect(); };
+  }, [loaded, artists.length]);
 
   const handleImgError = (id: number) => {
     setImgErrors((prev) => ({ ...prev, [id]: true }));
