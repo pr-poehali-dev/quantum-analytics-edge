@@ -80,12 +80,9 @@ const Header = () => {
               </button>
             </li>
             <li>
-              <button
-                onClick={() => scrollToSection("demo")}
-                className="text-white hover:text-purple-400 transition-colors"
-              >
-                Отправить демо
-              </button>
+              <a href="/news" className="text-white hover:text-purple-400 transition-colors">
+                Новости
+              </a>
             </li>
             <li>
               <button
