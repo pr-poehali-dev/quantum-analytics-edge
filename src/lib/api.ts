@@ -99,6 +99,7 @@ export const api = {
     myRequests: () => get("distribution"),
     list: (userId?: number) => get("distribution", userId ? `&user_id=${userId}` : ""),
     updateStatus: (id: number, status: string) => put("update-distribution", { id, status }),
+    uploadAudio: (data: object) => post("upload-audio", data),
   },
   royalties: {
     list: (userId?: number) => get("royalties", userId ? `&user_id=${userId}` : ""),

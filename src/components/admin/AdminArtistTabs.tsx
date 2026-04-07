@@ -790,7 +790,19 @@ export default function AdminArtistTabs(props: Props) {
               )}
               {req.audio_url && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1.5">Аудиофайл</p>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-xs text-zinc-500">Аудиофайл</p>
+                    <a
+                      href={req.audio_url}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-[#f5a623] hover:text-[#f5a623]/80 transition-colors"
+                    >
+                      <Icon name="Download" size={12} />
+                      Скачать
+                    </a>
+                  </div>
                   <audio controls src={req.audio_url} className="w-full h-10" style={{ colorScheme: "dark" }} />
                 </div>
               )}

@@ -436,6 +436,31 @@ def handler(event: dict, context) -> dict:
             conn.commit()
         return ok({'cover_url': cover_url})
 
+    # Загрузка аудиофайла для заявки (отдельный запрос)
+    if action == 'upload-audio' and method == 'POST':
+        u = get_user(cur, token, schema)
+        if not u:
+            return err(401, 'Не авторизован')
+        body = json.loads(event.get('body') or '{}')
+        file_data = body.get('file_data')
+        file_name = body.get('file_name', 'audio.mp3')
+        if not file_data:
+            return err(400, 'Нет файла')
+        file_bytes = base64.b64decode(file_data)
+        ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'mp3'
+        content_type_map = {'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'flac': 'audio/flac', 'm4a': 'audio/mp4', 'aac': 'audio/aac', 'ogg': 'audio/ogg'}
+        content_type = content_type_map.get(ext, 'audio/mpeg')
+        audio_key = f'dist-audio/{datetime.now().strftime("%Y%m%d%H%M%S")}_{u[0]}_{uuid.uuid4().hex[:8]}_{file_name}'
+        s3 = boto3.client('s3',
+            endpoint_url='https://bucket.poehali.dev',
+            aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+            aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+        )
+        s3.put_object(Bucket='files', Key=audio_key, Body=file_bytes, ContentType=content_type)
+        audio_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{audio_key}"
+        cur.close(); conn.close()
+        return ok({'audio_url': audio_url})
+
     # Заявка на дистрибьюцию (артист — POST)
     if action == 'distribution' and method == 'POST':
         u = get_user(cur, token, schema)
@@ -444,21 +469,7 @@ def handler(event: dict, context) -> dict:
         body = json.loads(event.get('body') or '{}')
         lyrics = body.get('lyrics', '') or ''
         copyright_text = body.get('copyright', '') or ''
-
-        audio_url = None
-        audio_file_data = body.get('audio_file_data')
-        audio_file_name = body.get('audio_file_name', 'audio.mp3')
-        if audio_file_data:
-            audio_bytes = base64.b64decode(audio_file_data)
-            ext = audio_file_name.rsplit('.', 1)[-1].lower() if '.' in audio_file_name else 'mp3'
-            audio_key = f'dist-audio/{datetime.now().strftime("%Y%m%d%H%M%S")}_{u[0]}_{audio_file_name}'
-            s3 = boto3.client('s3',
-                endpoint_url='https://bucket.poehali.dev',
-                aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
-                aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
-            )
-            s3.put_object(Bucket='files', Key=audio_key, Body=audio_bytes, ContentType=f'audio/{ext}')
-            audio_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{audio_key}"
+        audio_url = body.get('audio_url') or None
 
         cur.execute(
             f"INSERT INTO {schema}.distribution_requests (user_id, release_id, platforms, message, lyrics, copyright, audio_url) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id, created_at",

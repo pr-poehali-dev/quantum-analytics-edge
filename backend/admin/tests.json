@@ -38,6 +38,15 @@
       "expectedStatus": 401,
       "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Upload audio without token — 401",
+      "method": "POST",
+      "path": "/?action=upload-audio",
+      "body": {},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
     }
   ]
 }

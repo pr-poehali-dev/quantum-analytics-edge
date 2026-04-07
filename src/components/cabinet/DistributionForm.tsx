@@ -33,37 +33,51 @@ export default function DistributionForm({ releases, onSubmitted }: Props) {
   const [copyright, setCopyright] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadStage, setUploadStage] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const MAX_FILE_MB = 50;
 
   const ic = "bg-[#0f1923] border-white/10 text-white placeholder:text-slate-600 focus:border-[#f5a623]/40";
   const sc = "w-full bg-[#0f1923] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-[#f5a623]/40 transition-colors";
 
   const handleSubmit = async () => {
     if (!platforms.trim()) { setError("Укажите платформы"); return; }
+    if (audioFile && audioFile.size > MAX_FILE_MB * 1024 * 1024) {
+      setError(`Файл слишком большой. Максимум ${MAX_FILE_MB} МБ`);
+      return;
+    }
     setSubmitting(true);
     setError("");
     setSuccess("");
 
-    let audio_file_data: string | undefined;
-    let audio_file_name: string | undefined;
+    let audio_url: string | undefined;
 
     if (audioFile) {
+      setUploadStage("Загружаем аудиофайл...");
       const toBase64 = (f: File): Promise<string> =>
         new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res((r.result as string).split(",")[1]); r.onerror = rej; r.readAsDataURL(f); });
-      audio_file_data = await toBase64(audioFile);
-      audio_file_name = audioFile.name;
+      const file_data = await toBase64(audioFile);
+      const uploadRes = await api.distribution.uploadAudio({ file_data, file_name: audioFile.name });
+      if (!uploadRes.audio_url) {
+        setError(uploadRes.error || "Ошибка загрузки файла");
+        setSubmitting(false);
+        setUploadStage("");
+        return;
+      }
+      audio_url = uploadRes.audio_url;
     }
 
+    setUploadStage("Отправляем заявку...");
     const res = await api.distribution.submit({
       platforms,
       message,
       lyrics: lyrics || undefined,
       copyright: copyright || undefined,
       release_id: releaseId ? Number(releaseId) : undefined,
-      audio_file_data,
-      audio_file_name,
+      audio_url,
     });
 
     if (res.request) {
@@ -80,6 +94,7 @@ export default function DistributionForm({ releases, onSubmitted }: Props) {
       setError(res.error || "Ошибка отправки заявки");
     }
     setSubmitting(false);
+    setUploadStage("");
   };
 
   return (
@@ -158,7 +173,7 @@ export default function DistributionForm({ releases, onSubmitted }: Props) {
         disabled={submitting}
         className="bg-[#f5a623] text-black hover:bg-[#f5a623]/90 font-semibold"
       >
-        {submitting ? "Отправляем..." : "Отправить заявку"}
+        {submitting ? (uploadStage || "Отправляем...") : "Отправить заявку"}
       </Button>
     </div>
   );
