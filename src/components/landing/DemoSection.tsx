@@ -144,7 +144,7 @@ const DemoSection = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-neon-violet to-neon-fuchsia hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-neon-violet to-neon-fuchsia transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_-6px_hsl(var(--neon-fuchsia)/0.8)] active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>

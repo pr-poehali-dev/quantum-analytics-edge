@@ -18,7 +18,6 @@ const Header = () => {
 
   const navLinks = [
     { label: "Услуги", href: "/services" },
-    { label: "BeatStore", href: "/beatstore" },
     { label: "Новинки", href: "/label-news" },
     { label: "Обо мне", action: () => scrollToSection("about") },
     { label: "Артисты", action: () => scrollToSection("artists") },
@@ -61,14 +60,14 @@ const Header = () => {
                   {link.href ? (
                     <a
                       href={link.href}
-                      className="block px-3 py-2 text-sm text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-all"
+                      className="block px-3 py-2 text-sm font-medium text-white/70 hover:text-white rounded-xl hover:bg-white/10 transition-all duration-300"
                     >
                       {link.label}
                     </a>
                   ) : (
                     <button
                       onClick={link.action}
-                      className="block w-full text-left px-3 py-2 text-sm text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-all"
+                      className="block w-full text-left px-3 py-2 text-sm font-medium text-white/70 hover:text-white rounded-xl hover:bg-white/10 transition-all duration-300"
                     >
                       {link.label}
                     </button>
@@ -86,16 +85,17 @@ const Header = () => {
           <div className="hidden md:flex items-center gap-2">
             <a
               href="/login"
-              className="px-4 py-2 text-sm text-white/80 hover:text-white transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white rounded-xl hover:bg-white/10 transition-all duration-300"
             >
               Кабинет
             </a>
             <a
               href="#contact"
               onClick={(e) => { e.preventDefault(); scrollToSection("contact"); }}
-              className="px-5 py-2 text-sm font-semibold rounded-xl bg-gradient-to-r from-neon-violet to-neon-fuchsia text-white hover:opacity-90 transition-all glow-violet"
+              className="group relative px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-neon-violet to-neon-fuchsia text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_-5px_hsl(var(--neon-fuchsia)/0.8)] active:scale-95"
             >
-              Связаться
+              <span className="relative z-10">Связаться</span>
+              <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-neon-fuchsia to-neon-violet opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </a>
           </div>
         </div>

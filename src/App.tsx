@@ -13,7 +13,6 @@ import LiveRadio from "./pages/LiveRadio";
 import Services from "./pages/Services";
 import NotFound from "./pages/NotFound";
 import SmartLink from "./pages/SmartLink";
-import BeatStore from "./pages/BeatStore";
 import LabelNews from "./pages/LabelNews";
 import Shots from "./pages/Shots";
 import News from "./pages/News";
@@ -52,7 +51,6 @@ const App = () => (
             <Route path="/radio" element={<LiveRadio />} />
             <Route path="/services" element={<Services />} />
             <Route path="/r/:slug" element={<SmartLink />} />
-            <Route path="/beatstore" element={<BeatStore />} />
             <Route path="/label-news" element={<LabelNews />} />
             <Route path="/shots" element={<Shots />} />
             <Route path="/news" element={<News />} />

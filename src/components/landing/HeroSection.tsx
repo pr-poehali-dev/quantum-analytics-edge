@@ -48,14 +48,24 @@ const HeroSection = () => {
               выйти на новый уровень — от создания звука до полноценного маркетинга.
             </p>
 
-            <a
-              href="#contact"
-              onClick={(e) => { e.preventDefault(); document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }); }}
-              className="group inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-semibold text-white bg-gradient-to-r from-neon-violet via-neon-fuchsia to-neon-violet bg-[length:200%_auto] hover:bg-right transition-all duration-500 glow-violet"
-            >
-              Обсудить проект
-              <Icon name="ArrowRight" size={18} className="group-hover:translate-x-1 transition-transform" />
-            </a>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a
+                href="#contact"
+                onClick={(e) => { e.preventDefault(); document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }); }}
+                className="group relative inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-semibold text-white bg-gradient-to-r from-neon-violet via-neon-fuchsia to-neon-violet bg-[length:200%_auto] hover:bg-right transition-all duration-500 glow-violet hover:scale-105 hover:shadow-[0_0_45px_-8px_hsl(var(--neon-fuchsia)/0.9)] active:scale-95"
+              >
+                Обсудить проект
+                <Icon name="ArrowRight" size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
+              </a>
+              <a
+                href="#artists"
+                onClick={(e) => { e.preventDefault(); document.getElementById("artists")?.scrollIntoView({ behavior: "smooth" }); }}
+                className="group inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-semibold text-white glass-card glass-card-hover transition-all duration-300 hover:scale-105 active:scale-95"
+              >
+                Наши артисты
+                <Icon name="ChevronDown" size={18} className="group-hover:translate-y-0.5 transition-transform duration-300" />
+              </a>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto mt-20">
