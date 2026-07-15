@@ -82,7 +82,7 @@ export default function AdminRadio() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
       const r = await fetch(
-        `https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f?action=upload-radio-track`,
+        `https://functions.poehali.dev/cf183d3e-0346-4b33-a765-9237aa819f5c?action=upload-radio-track`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Session-Token": localStorage.getItem("ks_token") || "" },

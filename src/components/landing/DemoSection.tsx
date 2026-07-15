@@ -1,11 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, CheckCircle } from "lucide-react";
 import Icon from "@/components/ui/icon";
 
-const DEMO_URL = "https://functions.poehali.dev/aaaa833c-ba5f-45a3-9e67-57860b52d894";
+const DEMO_URL = "https://functions.poehali.dev/73d2e33e-564e-42ba-bcb2-46dc5cbc743c";
 
 const DemoSection = () => {
   const [formData, setFormData] = useState({
@@ -64,114 +62,103 @@ const DemoSection = () => {
   };
 
   return (
-    <section id="demo" ref={ref} className="py-20 relative overflow-hidden bg-black">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-900/10 to-transparent" />
-
+    <section id="demo" ref={ref} className="py-24 relative overflow-hidden">
       <div
         className={`container mx-auto px-4 relative z-10 transition-all duration-700 ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
         }`}
       >
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2 mb-6">
-            <Icon name="Music" size={16} className="text-white/70" />
-            <span className="text-sm text-zinc-400">Отправить демо</span>
+          <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-2 mb-6">
+            <Icon name="Music" size={16} className="text-neon-fuchsia" />
+            <span className="text-sm text-white/60">Отправить демо</span>
           </div>
-          <h2 className="text-5xl font-bold mb-4 text-white">Хочешь попасть на лейбл?</h2>
-          <p className="text-xl text-zinc-400 max-w-xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white">
+            Хочешь попасть <span className="gradient-text">на лейбл?</span>
+          </h2>
+          <p className="text-lg md:text-xl text-white/50 max-w-xl mx-auto">
             Отправь своё демо — мы послушаем каждого и свяжемся с теми, чьё творчество нас зацепит
           </p>
         </div>
 
         <div
-          className={`max-w-lg mx-auto bg-zinc-900/60 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/10 transition-all duration-500 delay-200 ${
+          className={`max-w-lg mx-auto glass-card rounded-3xl p-8 transition-all duration-500 delay-200 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
           }`}
         >
           {isSubmitted ? (
             <div className="text-center py-8">
-              <CheckCircle className="w-16 h-16 text-white mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-2">Демо отправлено!</h3>
-              <p className="text-zinc-400">Мы получили твои материалы и скоро свяжемся с тобой.</p>
+              <Icon name="CheckCircle" size={64} className="text-neon-cyan mx-auto mb-4" />
+              <h3 className="text-2xl font-display font-bold text-white mb-2">Демо отправлено!</h3>
+              <p className="text-white/50">Мы получили твои материалы и скоро свяжемся с тобой.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Input
-                  type="text"
-                  name="name"
-                  placeholder="Имя или псевдоним *"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="bg-white/5 border-zinc-700 text-zinc-200 placeholder-zinc-500"
-                />
-              </div>
-              <div>
-                <Input
-                  type="text"
-                  name="contact"
-                  placeholder="Telegram или телефон для связи *"
-                  value={formData.contact}
-                  onChange={handleChange}
-                  required
-                  className="bg-white/5 border-zinc-700 text-zinc-200 placeholder-zinc-500"
-                />
-              </div>
-              <div>
-                <Input
-                  type="text"
-                  name="genre"
-                  placeholder="Жанр / стиль"
-                  value={formData.genre}
-                  onChange={handleChange}
-                  className="bg-white/5 border-zinc-700 text-zinc-200 placeholder-zinc-500"
-                />
-              </div>
-              <div>
-                <Input
-                  type="url"
-                  name="link"
-                  placeholder="Ссылка на демо (YouTube, SoundCloud, Яндекс.Диск...) *"
-                  value={formData.link}
-                  onChange={handleChange}
-                  required
-                  className="bg-white/5 border-zinc-700 text-zinc-200 placeholder-zinc-500"
-                />
-              </div>
-              <div>
-                <Textarea
-                  name="about"
-                  placeholder="Расскажи о себе — цели, опыт, достижения"
-                  value={formData.about}
-                  onChange={handleChange}
-                  className="bg-white/5 border-zinc-700 text-zinc-200 placeholder-zinc-500 min-h-[100px]"
-                />
-              </div>
+              <Input
+                type="text"
+                name="name"
+                placeholder="Имя или псевдоним *"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+              />
+              <Input
+                type="text"
+                name="contact"
+                placeholder="Telegram или телефон для связи *"
+                value={formData.contact}
+                onChange={handleChange}
+                required
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+              />
+              <Input
+                type="text"
+                name="genre"
+                placeholder="Жанр / стиль"
+                value={formData.genre}
+                onChange={handleChange}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+              />
+              <Input
+                type="url"
+                name="link"
+                placeholder="Ссылка на демо (YouTube, SoundCloud, Яндекс.Диск...) *"
+                value={formData.link}
+                onChange={handleChange}
+                required
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+              />
+              <Textarea
+                name="about"
+                placeholder="Расскажи о себе — цели, опыт, достижения"
+                value={formData.about}
+                onChange={handleChange}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30 min-h-[100px]"
+              />
 
               {error && (
                 <p className="text-red-400 text-sm text-center">{error}</p>
               )}
 
-              <Button
+              <button
                 type="submit"
-                className="w-full bg-white text-black hover:bg-zinc-200 transition-colors"
                 disabled={isSubmitting}
+                className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-neon-violet to-neon-fuchsia hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="animate-spin mr-2" size={18} />
+                    <Icon name="Loader2" size={18} className="animate-spin" />
                     Отправка...
                   </>
                 ) : (
                   <>
-                    <Send className="mr-2" size={18} />
+                    <Icon name="Send" size={18} />
                     Отправить демо
                   </>
                 )}
-              </Button>
-              <p className="text-xs text-zinc-500 text-center">* обязательные поля</p>
+              </button>
+              <p className="text-xs text-white/30 text-center">* обязательные поля</p>
             </form>
           )}
         </div>

@@ -26,6 +26,21 @@
       "expectedStatus": 403,
       "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Список интервью",
+      "method": "GET",
+      "path": "/?action=list-interviews",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Добавить интервью без токена — 403",
+      "method": "POST",
+      "path": "/?action=add-interview",
+      "body": {"artist_name": "Test", "question": "Q", "answer": "A"},
+      "expectedStatus": 403,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
     }
   ]
 }

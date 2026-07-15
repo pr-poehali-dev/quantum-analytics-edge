@@ -9,3 +9,4 @@ export { default as ArtistsSection } from "./ArtistsSection";
 export { default as Footer } from "./Footer";
 export { default as PromoPackages } from "./PromoPackages";
 export { default as NewsSection } from "./NewsSection";
+export { default as InterviewsSection } from "./InterviewsSection";

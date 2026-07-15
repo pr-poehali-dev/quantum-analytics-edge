@@ -1,13 +1,13 @@
-const BASE = "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f";
-const NEWS_BASE = "https://functions.poehali.dev/30176f0e-4ac6-48e2-a2f4-8fb16a5630d6";
-const SHOTS_BASE = "https://functions.poehali.dev/b4fdb0bf-57f9-4b94-8ead-c58dbd739c80";
-const TRACKS = "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2";
-const AUTH = "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c";
-const SMARTLINK_BASE = "https://functions.poehali.dev/a881dc8f-d2db-4da3-b755-0d1aa6cd08a0";
-const BEATSTORE_BASE = "https://functions.poehali.dev/76bda3d9-5afb-4469-b432-9f145059aa2e";
-const GENERATE_COVER_BASE = "https://functions.poehali.dev/8773f1e2-7da7-4964-abdb-2b5566495669";
-const SUNO_BASE = "https://functions.poehali.dev/2747ca88-4546-49f4-99d9-add5fa468652";
-const AI_CHAT_BASE = "https://functions.poehali.dev/7f5d887d-207a-4139-bae7-942f37b95e46";
+const BASE = "https://functions.poehali.dev/cf183d3e-0346-4b33-a765-9237aa819f5c";
+const NEWS_BASE = "https://functions.poehali.dev/4276f97b-e1b9-4b8d-b287-bb47187d7d79";
+const SHOTS_BASE = "https://functions.poehali.dev/3acf1c59-774f-424c-9a00-cae0feb7666c";
+const TRACKS = "https://functions.poehali.dev/d339116b-08fa-4f52-8f11-0f0d2562f279";
+const AUTH = "https://functions.poehali.dev/e6f110d8-f326-4608-8299-c73add286edd";
+const SMARTLINK_BASE = "https://functions.poehali.dev/7a366c80-4902-4f1d-bd09-d77a170df95a";
+const BEATSTORE_BASE = "https://functions.poehali.dev/a6dc36ea-c97a-4781-9390-c33f3b312f53";
+const GENERATE_COVER_BASE = "https://functions.poehali.dev/1961a49b-358c-4097-a094-5c9a640bfa7d";
+const SUNO_BASE = "https://functions.poehali.dev/4be0dc2a-52d6-484c-a0d9-17337fdacbe0";
+const AI_CHAT_BASE = "https://functions.poehali.dev/c2fb26de-7844-4299-821b-15d56ac7b5e6";
 
 function token() { return localStorage.getItem("ks_token") || ""; }
 function headers() { return { "Content-Type": "application/json", "X-Session-Token": token() }; }
@@ -155,6 +155,11 @@ export const api = {
     addArtist: (data: object) => fetch(`${BEATSTORE_BASE}?action=add-artist`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     updateArtist: (data: object) => fetch(`${BEATSTORE_BASE}?action=update-artist`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
     delArtist: (id: number) => fetch(`${BEATSTORE_BASE}?action=del-artist`, { method: 'POST', headers: headers(), body: JSON.stringify({ id }) }).then(r => r.json()),
+    listInterviews: () => fetch(`${BEATSTORE_BASE}?action=list-interviews&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
+    adminInterviews: () => fetch(`${BEATSTORE_BASE}?action=admin-interviews&_t=${Date.now()}`, { cache: 'no-store', headers: headers() }).then(r => r.json()),
+    addInterview: (data: object) => fetch(`${BEATSTORE_BASE}?action=add-interview`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+    updateInterview: (data: object) => fetch(`${BEATSTORE_BASE}?action=update-interview`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(r => r.json()),
+    delInterview: (id: number) => fetch(`${BEATSTORE_BASE}?action=del-interview`, { method: 'POST', headers: headers(), body: JSON.stringify({ id }) }).then(r => r.json()),
   },
   shots: {
     feed: (params?: string) => fetch(`${SHOTS_BASE}?action=feed${params || ''}`, { headers: headers() }).then(r => r.json()),

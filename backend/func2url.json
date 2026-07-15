@@ -1,14 +1,14 @@
 {
-  "news": "https://functions.poehali.dev/30176f0e-4ac6-48e2-a2f4-8fb16a5630d6",
-  "ai-chat": "https://functions.poehali.dev/7f5d887d-207a-4139-bae7-942f37b95e46",
-  "shots": "https://functions.poehali.dev/b4fdb0bf-57f9-4b94-8ead-c58dbd739c80",
-  "suno-generate": "https://functions.poehali.dev/2747ca88-4546-49f4-99d9-add5fa468652",
-  "generate-cover": "https://functions.poehali.dev/8773f1e2-7da7-4964-abdb-2b5566495669",
-  "beatstore": "https://functions.poehali.dev/76bda3d9-5afb-4469-b432-9f145059aa2e",
-  "smartlink": "https://functions.poehali.dev/a881dc8f-d2db-4da3-b755-0d1aa6cd08a0",
-  "auth": "https://functions.poehali.dev/2d79c7fb-b9fe-4b33-9d7d-c232e7c9cc4c",
-  "tracks": "https://functions.poehali.dev/afedf9ee-5782-4eee-8e0d-b7416b479bf2",
-  "chat": "https://functions.poehali.dev/6c31944e-44d4-4a20-b201-4fc6021e25ba",
-  "admin": "https://functions.poehali.dev/86efa512-bc82-4f74-adbe-2ede76c6470f",
-  "send-demo": "https://functions.poehali.dev/aaaa833c-ba5f-45a3-9e67-57860b52d894"
+  "generate-cover": "https://functions.poehali.dev/1961a49b-358c-4097-a094-5c9a640bfa7d",
+  "ai-chat": "https://functions.poehali.dev/c2fb26de-7844-4299-821b-15d56ac7b5e6",
+  "auth": "https://functions.poehali.dev/e6f110d8-f326-4608-8299-c73add286edd",
+  "tracks": "https://functions.poehali.dev/d339116b-08fa-4f52-8f11-0f0d2562f279",
+  "smartlink": "https://functions.poehali.dev/7a366c80-4902-4f1d-bd09-d77a170df95a",
+  "send-demo": "https://functions.poehali.dev/73d2e33e-564e-42ba-bcb2-46dc5cbc743c",
+  "shots": "https://functions.poehali.dev/3acf1c59-774f-424c-9a00-cae0feb7666c",
+  "news": "https://functions.poehali.dev/4276f97b-e1b9-4b8d-b287-bb47187d7d79",
+  "beatstore": "https://functions.poehali.dev/a6dc36ea-c97a-4781-9390-c33f3b312f53",
+  "suno-generate": "https://functions.poehali.dev/4be0dc2a-52d6-484c-a0d9-17337fdacbe0",
+  "chat": "https://functions.poehali.dev/bd40699e-cdcf-4044-bb8a-30e988a5d4d3",
+  "admin": "https://functions.poehali.dev/cf183d3e-0346-4b33-a765-9237aa819f5c"
 }

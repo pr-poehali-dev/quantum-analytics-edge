@@ -1,7 +1,8 @@
 """
-BeatStore KS LABEL: загрузка битов, просмотр, новинки лейбла, артисты.
-Публичные: list-beats, get-beat, play-beat, list-label-releases, list-artists.
-Админ: add-label-release, update-label-release, del-label-release, del-beat, admin-artists, add-artist, update-artist, del-artist.
+BeatStore KS LABEL: загрузка битов, просмотр, новинки лейбла, артисты, интервью.
+Публичные: list-beats, get-beat, play-beat, list-label-releases, list-artists, list-interviews.
+Админ: add-label-release, update-label-release, del-label-release, del-beat, admin-artists, add-artist, update-artist, del-artist,
+admin-interviews, add-interview, update-interview, del-interview.
 """
 import json
 import os
@@ -424,6 +425,119 @@ def handler(event: dict, context) -> dict:
             return err(403, 'Доступ запрещён')
         body = json.loads(event.get('body') or '{}')
         cur.execute(f"DELETE FROM {schema}.label_artists WHERE id = %s", (body.get('id'),))
+        conn.commit()
+        cur.close(); conn.close()
+        return ok({'ok': True})
+
+    # ─── ПУБЛИЧНЫЙ: список интервью ────────────────────────────────────────
+    if action == 'list-interviews' and method == 'GET':
+        cur.execute(f"""
+            SELECT id, artist_name, artist_photo_url, question, answer, excerpt, sort_order
+            FROM {schema}.label_interviews
+            WHERE is_visible = TRUE
+            ORDER BY sort_order ASC, id ASC
+        """)
+        rows = cur.fetchall()
+        interviews = [{'id': r[0], 'artist_name': r[1], 'artist_photo_url': r[2], 'question': r[3], 'answer': r[4], 'excerpt': r[5], 'sort_order': r[6]} for r in rows]
+        cur.close(); conn.close()
+        return ok({'interviews': interviews}, no_cache=True)
+
+    # ─── АДМИН: все интервью (включая скрытые) ─────────────────────────────
+    if action == 'admin-interviews' and method == 'GET':
+        admin_id = get_admin(cur, token, schema)
+        if not admin_id:
+            cur.close(); conn.close()
+            return err(403, 'Доступ запрещён')
+        cur.execute(f"""
+            SELECT id, artist_name, artist_photo_url, question, answer, excerpt, sort_order, is_visible, created_at
+            FROM {schema}.label_interviews
+            ORDER BY sort_order ASC, id ASC
+        """)
+        rows = cur.fetchall()
+        interviews = [{'id': r[0], 'artist_name': r[1], 'artist_photo_url': r[2], 'question': r[3], 'answer': r[4], 'excerpt': r[5], 'sort_order': r[6], 'is_visible': r[7], 'created_at': str(r[8])} for r in rows]
+        cur.close(); conn.close()
+        return ok({'interviews': interviews})
+
+    # ─── АДМИН: добавить интервью ───────────────────────────────────────────
+    if action == 'add-interview' and method == 'POST':
+        admin_id = get_admin(cur, token, schema)
+        if not admin_id:
+            cur.close(); conn.close()
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        artist_name = str(body.get('artist_name', '')).strip()
+        question = str(body.get('question', '')).strip()
+        answer = str(body.get('answer', '')).strip()
+        excerpt = str(body.get('excerpt', '')).strip() or None
+        sort_order = int(body.get('sort_order', 0))
+        photo_url = str(body.get('artist_photo_url', '')).strip() or None
+        file_data = body.get('file_data', '')
+        file_name = str(body.get('file_name', 'photo.jpg')).strip()
+        if not artist_name or not question or not answer:
+            cur.close(); conn.close()
+            return err(400, 'Укажите имя артиста, вопрос и ответ')
+        if file_data and not photo_url:
+            s3 = get_s3()
+            img_bytes = base64.b64decode(file_data)
+            ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'jpg'
+            img_key = f'interviews/{uuid.uuid4()}.{ext}'
+            img_types = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}
+            s3.put_object(Bucket='files', Key=img_key, Body=img_bytes, ContentType=img_types.get(ext, 'image/jpeg'))
+            photo_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{img_key}"
+        cur.execute(f"""
+            INSERT INTO {schema}.label_interviews (artist_name, artist_photo_url, question, answer, excerpt, sort_order)
+            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, created_at
+        """, (artist_name, photo_url, question, answer, excerpt, sort_order))
+        row = cur.fetchone()
+        conn.commit()
+        cur.close(); conn.close()
+        return ok({'interview': {'id': row[0], 'artist_name': artist_name, 'artist_photo_url': photo_url, 'question': question, 'answer': answer, 'excerpt': excerpt, 'sort_order': sort_order, 'is_visible': True, 'created_at': str(row[1])}})
+
+    # ─── АДМИН: обновить интервью ───────────────────────────────────────────
+    if action == 'update-interview' and method == 'POST':
+        admin_id = get_admin(cur, token, schema)
+        if not admin_id:
+            cur.close(); conn.close()
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        interview_id = body.get('id')
+        if not interview_id:
+            cur.close(); conn.close()
+            return err(400, 'Укажите id')
+        file_data = body.get('file_data', '')
+        file_name = str(body.get('file_name', 'photo.jpg')).strip()
+        photo_url = body.get('artist_photo_url')
+        if file_data:
+            s3 = get_s3()
+            img_bytes = base64.b64decode(file_data)
+            ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'jpg'
+            img_key = f'interviews/{uuid.uuid4()}.{ext}'
+            img_types = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}
+            s3.put_object(Bucket='files', Key=img_key, Body=img_bytes, ContentType=img_types.get(ext, 'image/jpeg'))
+            photo_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{img_key}"
+        fields = {}
+        if 'artist_name' in body: fields['artist_name'] = body['artist_name']
+        if 'question' in body: fields['question'] = body['question']
+        if 'answer' in body: fields['answer'] = body['answer']
+        if 'excerpt' in body: fields['excerpt'] = body['excerpt']
+        if photo_url is not None: fields['artist_photo_url'] = photo_url
+        if 'sort_order' in body: fields['sort_order'] = int(body['sort_order'])
+        if 'is_visible' in body: fields['is_visible'] = body['is_visible']
+        if fields:
+            set_sql = ', '.join(f"{k} = %s" for k in fields)
+            cur.execute(f"UPDATE {schema}.label_interviews SET {set_sql} WHERE id = %s", list(fields.values()) + [interview_id])
+            conn.commit()
+        cur.close(); conn.close()
+        return ok({'ok': True})
+
+    # ─── АДМИН: удалить интервью ─────────────────────────────────────────────
+    if action == 'del-interview' and method == 'POST':
+        admin_id = get_admin(cur, token, schema)
+        if not admin_id:
+            cur.close(); conn.close()
+            return err(403, 'Доступ запрещён')
+        body = json.loads(event.get('body') or '{}')
+        cur.execute(f"DELETE FROM {schema}.label_interviews WHERE id = %s", (body.get('id'),))
         conn.commit()
         cur.close(); conn.close()
         return ok({'ok': True})

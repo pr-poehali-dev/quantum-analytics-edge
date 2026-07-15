@@ -11,9 +11,10 @@ import AdminLabelNews from "@/components/admin/AdminLabelNews";
 import AdminArtists from "@/components/admin/AdminArtists";
 import AdminRadio from "@/components/admin/AdminRadio";
 import AdminNews from "@/components/admin/AdminNews";
+import AdminInterviews from "@/components/admin/AdminInterviews";
 
 type Tab = "materials" | "releases" | "stats" | "royalties" | "chat" | "documents" | "requests";
-type SideTab = "artists" | "create-user" | "label-news" | "site-artists" | "radio" | "news";
+type SideTab = "artists" | "create-user" | "label-news" | "site-artists" | "radio" | "news" | "interviews";
 
 interface Stat { id: number; platform: string; track_title: string; streams: number; period: string; notes: string; created_at: string; }
 interface VisitStats { online: number; today: number; week: number; month: number; top_pages: {page: string; visits: number}[]; daily: {date: string; visits: number}[]; }
@@ -332,7 +333,7 @@ export default function Admin() {
     <div className="min-h-screen bg-black text-white flex">
       <AdminSidebar
         sideTab={sideTab}
-        setSideTab={(t) => { setSideTab(t); if (t === "create-user" || t === "label-news" || t === "site-artists") setSelected(null); }}
+        setSideTab={(t) => { setSideTab(t); if (t === "create-user" || t === "label-news" || t === "site-artists" || t === "interviews") setSelected(null); }}
         artists={artists}
         selectedId={selected?.id ?? null}
         onSelectArtist={(a) => { setSelected(a); setTab("materials"); setSideTab("artists"); }}
@@ -374,6 +375,13 @@ export default function Admin() {
         {sideTab === "radio" && (
           <div className="p-6 max-w-2xl">
             <AdminRadio />
+          </div>
+        )}
+
+        {/* Интервью артистов */}
+        {sideTab === "interviews" && (
+          <div className="p-6 max-w-2xl">
+            <AdminInterviews />
           </div>
         )}
 
