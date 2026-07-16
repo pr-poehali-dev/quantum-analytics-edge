@@ -62,29 +62,34 @@ export default function AdminInterviews() {
     if (!form.artist_name.trim() || !form.question.trim() || !form.answer.trim()) return;
     setSaving(true);
     setMsg("");
-    const payload: Record<string, unknown> = {
-      artist_name: form.artist_name.trim(),
-      question: form.question.trim(),
-      answer: form.answer.trim(),
-      excerpt: form.excerpt.trim() || undefined,
-      sort_order: parseInt(form.sort_order) || 0,
-    };
-    if (photoFile) {
-      payload.file_data = await toBase64(photoFile);
-      payload.file_name = photoFile.name;
+    try {
+      const payload: Record<string, unknown> = {
+        artist_name: form.artist_name.trim(),
+        question: form.question.trim(),
+        answer: form.answer.trim(),
+        excerpt: form.excerpt.trim() || undefined,
+        sort_order: parseInt(form.sort_order) || 0,
+      };
+      if (photoFile) {
+        payload.file_data = await toBase64(photoFile);
+        payload.file_name = photoFile.name;
+      }
+      const res = await api.beatstore.addInterview(payload);
+      if (res.interview) {
+        setInterviews(prev => [...prev, res.interview]);
+        setForm(emptyForm);
+        setPhotoFile(null);
+        setPhotoPreview(null);
+        setAdding(false);
+        setMsg("Интервью добавлено");
+      } else {
+        setMsg(res.error || "Ошибка");
+      }
+    } catch (e) {
+      setMsg(e instanceof Error ? `Ошибка соединения: ${e.message}` : "Ошибка соединения, попробуйте ещё раз");
+    } finally {
+      setSaving(false);
     }
-    const res = await api.beatstore.addInterview(payload);
-    if (res.interview) {
-      setInterviews(prev => [...prev, res.interview]);
-      setForm(emptyForm);
-      setPhotoFile(null);
-      setPhotoPreview(null);
-      setAdding(false);
-      setMsg("Интервью добавлено");
-    } else {
-      setMsg(res.error || "Ошибка");
-    }
-    setSaving(false);
   };
 
   const startEdit = (item: Interview) => {
@@ -104,33 +109,38 @@ export default function AdminInterviews() {
   const handleSaveEdit = async (id: number) => {
     setSaving(true);
     setMsg("");
-    const payload: Record<string, unknown> = {
-      id,
-      artist_name: editForm.artist_name.trim(),
-      question: editForm.question.trim(),
-      answer: editForm.answer.trim(),
-      excerpt: editForm.excerpt.trim() || null,
-      sort_order: parseInt(editForm.sort_order) || 0,
-      is_visible: editForm.is_visible,
-    };
-    if (editPhotoFile) {
-      payload.file_data = await toBase64(editPhotoFile);
-      payload.file_name = editPhotoFile.name;
-    }
-    const res = await api.beatstore.updateInterview(payload);
-    if (res.ok) {
-      setInterviews(prev => prev.map(i => i.id === id ? {
-        ...i, ...editForm,
+    try {
+      const payload: Record<string, unknown> = {
+        id,
+        artist_name: editForm.artist_name.trim(),
+        question: editForm.question.trim(),
+        answer: editForm.answer.trim(),
+        excerpt: editForm.excerpt.trim() || null,
         sort_order: parseInt(editForm.sort_order) || 0,
-        artist_photo_url: editPhotoFile ? editPhotoPreview : i.artist_photo_url,
-      } : i));
-      setEditingId(null);
-      setMsg("Сохранено");
-      load();
-    } else {
-      setMsg(res.error || "Ошибка сохранения");
+        is_visible: editForm.is_visible,
+      };
+      if (editPhotoFile) {
+        payload.file_data = await toBase64(editPhotoFile);
+        payload.file_name = editPhotoFile.name;
+      }
+      const res = await api.beatstore.updateInterview(payload);
+      if (res.ok) {
+        setInterviews(prev => prev.map(i => i.id === id ? {
+          ...i, ...editForm,
+          sort_order: parseInt(editForm.sort_order) || 0,
+          artist_photo_url: editPhotoFile ? editPhotoPreview : i.artist_photo_url,
+        } : i));
+        setEditingId(null);
+        setMsg("Сохранено");
+        load();
+      } else {
+        setMsg(res.error || "Ошибка сохранения");
+      }
+    } catch (e) {
+      setMsg(e instanceof Error ? `Ошибка соединения: ${e.message}` : "Ошибка соединения, попробуйте ещё раз");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleDelete = async (id: number) => {
