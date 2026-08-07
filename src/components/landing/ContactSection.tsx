@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import Icon from "@/components/ui/icon";
+import { Loader2, Send, CheckCircle } from "lucide-react";
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -39,9 +40,12 @@ const ContactSection = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    // Симуляция отправки
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    console.log("Форма отправлена:", formData);
     setIsSubmitting(false);
     setIsSubmitted(true);
+    // Сброс формы через 3 секунды
     setTimeout(() => {
       setIsSubmitted(false);
       setFormData({ name: "", email: "", message: "" });
@@ -49,74 +53,80 @@ const ContactSection = () => {
   };
 
   return (
-    <section id="contact" ref={ref} className="py-24 relative overflow-hidden">
+    <section id="contact" ref={ref} className="py-20 bg-zinc-900 relative overflow-hidden">
+      <div
+        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"
+        style={{ backgroundPosition: "0 0, 0 0" }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
       <div
         className={`container mx-auto px-4 relative z-10 transition-all duration-700 ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
         }`}
       >
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-6 text-xs font-semibold text-white/70 tracking-wide uppercase">
-            На связи
-          </div>
-          <h2 className="text-4xl md:text-5xl font-display font-bold text-white">
-            Обсудить <span className="gradient-text">проект</span>
-          </h2>
-        </div>
+        <h2 className="text-5xl font-bold mb-10 text-center text-zinc-200">Обсудить проект</h2>
         <div
-          className={`max-w-md mx-auto glass-card rounded-3xl p-8 transition-all duration-500 delay-200 ${
+          className={`max-w-md mx-auto bg-black/50 backdrop-blur-lg rounded-lg p-8 shadow-2xl border border-white/10 transition-all duration-500 delay-200 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
           }`}
         >
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              type="text"
-              name="name"
-              placeholder="Ваше имя"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
-            />
-            <Input
-              type="email"
-              name="email"
-              placeholder="Ваш email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
-            />
-            <Textarea
-              name="message"
-              placeholder="Расскажите о себе и ваших целях"
-              value={formData.message}
-              onChange={handleChange}
-              required
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 min-h-[120px]"
-            />
-            <button
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <Input
+                type="text"
+                name="name"
+                placeholder="Ваше имя"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="bg-white/5 border-zinc-700 text-zinc-200 placeholder-zinc-500"
+              />
+            </div>
+            <div className="mb-4">
+              <Input
+                type="email"
+                name="email"
+                placeholder="Ваш email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="bg-white/5 border-zinc-700 text-zinc-200 placeholder-zinc-500"
+              />
+            </div>
+            <div className="mb-4">
+              <Textarea
+                name="message"
+                placeholder="Расскажите о себе и ваших целях"
+                value={formData.message}
+                onChange={handleChange}
+                required
+                className="bg-white/5 border-zinc-700 text-zinc-200 placeholder-zinc-500 min-h-[120px]"
+              />
+            </div>
+            <Button
               type="submit"
+              className="w-full bg-white text-black hover:bg-zinc-200 transition-colors relative overflow-hidden group"
               disabled={isSubmitting || isSubmitted}
-              className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-neon-violet to-neon-fuchsia transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_-6px_hsl(var(--neon-fuchsia)/0.8)] active:scale-95 disabled:opacity-70 disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? (
-                <>
-                  <Icon name="Loader2" size={18} className="animate-spin" />
-                  Отправка...
-                </>
-              ) : isSubmitted ? (
-                <>
-                  <Icon name="CheckCircle" size={18} />
-                  Отправлено!
-                </>
-              ) : (
-                <>
-                  <Icon name="Send" size={18} />
-                  Отправить сообщение
-                </>
-              )}
-            </button>
+              <span className="relative z-10 flex items-center justify-center">
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={18} />
+                    Отправка...
+                  </>
+                ) : isSubmitted ? (
+                  <>
+                    <CheckCircle className="mr-2" size={18} />
+                    Отправлено!
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2" size={18} />
+                    Отправить сообщение
+                  </>
+                )}
+              </span>
+            </Button>
           </form>
         </div>
       </div>

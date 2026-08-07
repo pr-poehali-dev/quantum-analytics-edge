@@ -18,10 +18,6 @@ export default {
 			}
 		},
 		extend: {
-			fontFamily: {
-				display: ['Unbounded', 'Manrope', 'system-ui', 'sans-serif'],
-				sans: ['Manrope', 'system-ui', 'sans-serif'],
-			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -55,11 +51,6 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
-				},
-				neon: {
-					violet: 'hsl(var(--neon-violet))',
-					fuchsia: 'hsl(var(--neon-fuchsia))',
-					cyan: 'hsl(var(--neon-cyan))',
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',

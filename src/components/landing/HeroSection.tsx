@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import Icon from "@/components/ui/icon";
+import { Button } from "@/components/ui/button";
+import { Play, Disc3, Music2, AudioWaveform } from "lucide-react";
 
 const HeroSection = () => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
   const [scrollOpacity, setScrollOpacity] = useState(1);
   const [scrollY, setScrollY] = useState(0);
 
@@ -10,77 +12,76 @@ const HeroSection = () => {
     const handleScroll = () => {
       const scrolled = window.scrollY;
       const windowHeight = window.innerHeight;
-      setScrollOpacity(Math.max(0, 1 - scrolled / (windowHeight * 0.5)));
-      setScrollY(scrolled * 0.4);
+      const opacity = Math.max(0, 1 - scrolled / (windowHeight * 0.5));
+      setScrollOpacity(opacity);
+      setScrollY(scrolled * 0.5);
     };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const stats = [
-    { icon: "Mic2", label: "Продвинутых артистов", value: "50+" },
-    { icon: "Disc3", label: "Выпущенных треков", value: "200+" },
-    { icon: "Sparkles", label: "Лет в индустрии", value: "8" },
-    { icon: "TrendingUp", label: "Успешных кейсов", value: "100+" },
+    { icon: <Play className="w-6 h-6" />, label: "Продвинутых артистов", value: "50+" },
+    { icon: <Disc3 className="w-6 h-6" />, label: "Выпущенных треков", value: "200+" },
+    { icon: <Music2 className="w-6 h-6" />, label: "Лет в музыкальной индустрии", value: "8" },
+    { icon: <AudioWaveform className="w-6 h-6" />, label: "Успешных кейсов", value: "100+" },
   ];
 
   return (
-    <section ref={containerRef} className="min-h-screen relative overflow-hidden flex items-center">
+    <section ref={containerRef} className="min-h-screen relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/50 to-black"></div>
+      </div>
+
       <div
         style={{ transform: `translateY(${scrollY}px)`, opacity: scrollOpacity }}
-        className="relative pt-32 pb-16 px-4 w-full"
+        className="relative pt-40 pb-16 px-4 transition-opacity duration-100 flex items-center min-h-screen"
       >
-        <div className="max-w-6xl mx-auto text-center">
-          <div className="animate-fade-in">
-            <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-8 text-xs font-semibold text-white/70 tracking-wide uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-neon-fuchsia animate-pulse" />
-              Музыкальный лейбл нового поколения
-            </div>
-
-            <h1 className="text-6xl md:text-8xl font-display font-black mb-6 tracking-tight leading-[0.95]">
-              <span className="gradient-text">Калашников</span>
-              <br />
-              <span className="text-white">Саунд</span>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16 animate-fade-in">
+            <h1 className="text-6xl md:text-8xl font-bold mb-6 tracking-tight relative">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-500">
+                Калашников Саунд
+              </span>
             </h1>
-
-            <p className="text-lg md:text-xl mb-10 text-white/60 max-w-2xl mx-auto leading-relaxed">
-              Продюсирование и продвижение артистов от Александра Балашова. Помогаем талантам
-              выйти на новый уровень — от создания звука до полноценного маркетинга.
+            <p className="text-xl md:text-2xl mb-8 text-zinc-400 max-w-3xl mx-auto">
+              Продюсирование и продвижение артистов от Александра Балашова. Помогаем талантам выйти
+              на новый уровень — от создания звука до полноценного маркетинга в музыкальной индустрии.
             </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a
-                href="#contact"
-                onClick={(e) => { e.preventDefault(); document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }); }}
-                className="group relative inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-semibold text-white bg-gradient-to-r from-neon-violet via-neon-fuchsia to-neon-violet bg-[length:200%_auto] hover:bg-right transition-all duration-500 glow-violet hover:scale-105 hover:shadow-[0_0_45px_-8px_hsl(var(--neon-fuchsia)/0.9)] active:scale-95"
+            <div className="relative inline-block">
+              <Button
+                size="lg"
+                className="bg-white text-black hover:bg-zinc-200 text-lg px-8 py-6 rounded-full transition-all duration-300 hover:scale-105"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                asChild
               >
-                Обсудить проект
-                <Icon name="ArrowRight" size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
-              </a>
-              <a
-                href="#artists"
-                onClick={(e) => { e.preventDefault(); document.getElementById("artists")?.scrollIntoView({ behavior: "smooth" }); }}
-                className="group inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-semibold text-white glass-card glass-card-hover transition-all duration-300 hover:scale-105 active:scale-95"
-              >
-                Наши артисты
-                <Icon name="ChevronDown" size={18} className="group-hover:translate-y-0.5 transition-transform duration-300" />
-              </a>
+                <a href="#contact" onClick={(e) => { e.preventDefault(); document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }); }}>
+                  <span className="relative z-10">Обсудить проект</span>
+                  <span
+                    className={`ml-2 relative z-10 transition-transform duration-200 ${
+                      isHovered ? "translate-x-1" : ""
+                    }`}
+                  >
+                    &rarr;
+                  </span>
+                </a>
+              </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto mt-20">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
             {stats.map((stat, index) => (
               <div
                 key={stat.label}
-                className="animate-fade-in"
+                className="text-center animate-fade-in"
                 style={{ animationDelay: `${0.2 + index * 0.1}s` }}
               >
-                <div className="glass-card glass-card-hover rounded-2xl p-5 md:p-6">
-                  <div className="mb-3 text-neon-fuchsia flex justify-center">
-                    <Icon name={stat.icon} size={26} />
-                  </div>
-                  <div className="text-2xl md:text-3xl font-display font-bold mb-1 text-white">{stat.value}</div>
-                  <div className="text-xs md:text-sm text-white/50">{stat.label}</div>
+                <div className="bg-zinc-900/50 rounded-xl p-6 backdrop-blur-lg border border-white/10 transition-all duration-300 hover:scale-105 hover:border-white/20">
+                  <div className="mb-2 text-white/70 flex justify-center">{stat.icon}</div>
+                  <div className="text-3xl font-bold mb-1 text-white">{stat.value}</div>
+                  <div className="text-sm text-zinc-400">{stat.label}</div>
                 </div>
               </div>
             ))}

@@ -1,37 +1,34 @@
-import Icon from "@/components/ui/icon";
+import { Youtube, Instagram, Music2 } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="relative py-10 border-t border-white/10">
+    <footer className="bg-black py-8 border-t border-white/10">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <a href="/" className="text-xl font-display font-extrabold gradient-text">
-            KS LABEL
-          </a>
-          <p className="text-white/40 text-sm">
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <p className="text-zinc-400 mb-4 md:mb-0">
             &copy; {new Date().getFullYear()} Калашников Саунд. Все права защищены.
           </p>
-          <div className="flex gap-3">
+          <div className="flex space-x-4">
             <a
               href="#"
-              className="w-10 h-10 flex items-center justify-center rounded-xl glass text-white/60 hover:text-white transition-all duration-300 hover:scale-110 hover:shadow-[0_0_20px_-4px_hsl(var(--neon-fuchsia)/0.7)]"
+              className="text-zinc-400 hover:text-white transition-colors"
               aria-label="YouTube"
             >
-              <Icon name="Youtube" size={18} />
+              <Youtube />
             </a>
             <a
               href="#"
-              className="w-10 h-10 flex items-center justify-center rounded-xl glass text-white/60 hover:text-white transition-all duration-300 hover:scale-110 hover:shadow-[0_0_20px_-4px_hsl(var(--neon-fuchsia)/0.7)]"
+              className="text-zinc-400 hover:text-white transition-colors"
               aria-label="Instagram"
             >
-              <Icon name="Instagram" size={18} />
+              <Instagram />
             </a>
             <a
               href="#"
-              className="w-10 h-10 flex items-center justify-center rounded-xl glass text-white/60 hover:text-white transition-all duration-300 hover:scale-110 hover:shadow-[0_0_20px_-4px_hsl(var(--neon-fuchsia)/0.7)]"
+              className="text-zinc-400 hover:text-white transition-colors"
               aria-label="BeatStars"
             >
-              <Icon name="Music2" size={18} />
+              <Music2 />
             </a>
           </div>
         </div>

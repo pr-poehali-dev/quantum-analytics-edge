@@ -6,7 +6,6 @@ import {
   PromoPackages,
   AboutSection,
   ArtistsSection,
-  InterviewsSection,
   NewsSection,
   DemoSection,
   ContactSection,
@@ -39,7 +38,7 @@ function FloatingNotes() {
 
 const Index = () => {
   return (
-    <div className="min-h-screen text-white relative bg-[#060314]">
+    <div className="min-h-screen text-white relative bg-black">
       <FloatingNotes />
       <InteractiveBackground />
       <div className="relative z-10">
@@ -50,7 +49,6 @@ const Index = () => {
           <PromoPackages />
           <AboutSection />
           <ArtistsSection />
-          <InterviewsSection />
           <NewsSection />
           <DemoSection />
           <ContactSection />
