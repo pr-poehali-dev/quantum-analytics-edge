@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Disc3, Music2, AudioWaveform } from "lucide-react";
+import { Play, Disc3, Music2, AudioWaveform, Radio, Headphones, Mic2 } from "lucide-react";
+
+const floatingIcons = [
+  { icon: <Music2 className="w-7 h-7" />, top: "12%", left: "8%", delay: "0s", duration: "7s" },
+  { icon: <Disc3 className="w-8 h-8" />, top: "20%", left: "88%", delay: "0.6s", duration: "8s" },
+  { icon: <Radio className="w-6 h-6" />, top: "68%", left: "5%", delay: "1.2s", duration: "9s" },
+  { icon: <Headphones className="w-7 h-7" />, top: "75%", left: "90%", delay: "0.3s", duration: "7.5s" },
+  { icon: <Mic2 className="w-6 h-6" />, top: "8%", left: "48%", delay: "1.8s", duration: "8.5s" },
+  { icon: <AudioWaveform className="w-6 h-6" />, top: "85%", left: "45%", delay: "0.9s", duration: "6.5s" },
+];
 
 const HeroSection = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,6 +41,22 @@ const HeroSection = () => {
     <section ref={containerRef} className="min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/50 to-black"></div>
+        {floatingIcons.map((item, index) => (
+          <div
+            key={index}
+            className="absolute text-white/10 animate-float-icon hidden md:block"
+            style={{
+              top: item.top,
+              left: item.left,
+              animationDelay: item.delay,
+              animationDuration: item.duration,
+            }}
+          >
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
+              {item.icon}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div

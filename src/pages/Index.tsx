@@ -8,6 +8,7 @@ import {
   ArtistsSection,
   NewsSection,
   DemoSection,
+  FaqSection,
   ContactSection,
   Footer,
 } from "@/components/landing";
@@ -51,6 +52,7 @@ const Index = () => {
           <ArtistsSection />
           <NewsSection />
           <DemoSection />
+          <FaqSection />
           <ContactSection />
         </main>
         <Footer />

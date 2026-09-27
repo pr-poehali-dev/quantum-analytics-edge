@@ -1,5 +1,12 @@
 import { useRef, useEffect, useState } from "react";
 import Icon from "@/components/ui/icon";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
 
 const BEATSTORE_BASE = "https://functions.poehali.dev/76bda3d9-5afb-4469-b432-9f145059aa2e";
 
@@ -77,51 +84,64 @@ const ArtistsSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {artists.map((artist, index) => {
-            const hasError = imgErrors[artist.id];
+        <div
+          className={`transition-all duration-700 delay-150 ${
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
+          <Carousel
+            opts={{ align: "start", loop: artists.length > 5 }}
+            className="max-w-6xl mx-auto"
+          >
+            <CarouselContent className="-ml-4">
+              {artists.map((artist) => {
+                const hasError = imgErrors[artist.id];
+                return (
+                  <CarouselItem
+                    key={artist.id}
+                    className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
+                  >
+                    <a
+                      href={artist.url || "#"}
+                      target={artist.url ? "_blank" : undefined}
+                      rel="noopener noreferrer"
+                      className="group relative block rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 hover:border-purple-500/50 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-purple-900/20"
+                    >
+                      <div className="aspect-square w-full overflow-hidden">
+                        {artist.photo_url && !hasError ? (
+                          <img
+                            src={artist.photo_url}
+                            alt={artist.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            onError={() => handleImgError(artist.id)}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-zinc-800">
+                            <Icon name="Music" size={40} className="text-zinc-600" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+                      </div>
 
-            return (
-              <a
-                key={artist.id}
-                href={artist.url || "#"}
-                target={artist.url ? "_blank" : undefined}
-                rel="noopener noreferrer"
-                className={`group relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 hover:border-purple-500/50 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-purple-900/20 ${
-                  isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-                }`}
-                style={{ transitionDelay: `${index * 60}ms` }}
-              >
-                <div className="aspect-square w-full overflow-hidden">
-                  {artist.photo_url && !hasError ? (
-                    <img
-                      src={artist.photo_url}
-                      alt={artist.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      onError={() => handleImgError(artist.id)}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-zinc-800">
-                      <Icon name="Music" size={40} className="text-zinc-600" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <p className="text-white font-semibold text-sm leading-tight">
-                    {artist.name}
-                  </p>
-                  {artist.url && (
-                    <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <Icon name="ExternalLink" size={12} className="text-purple-400" />
-                      <span className="text-purple-400 text-xs">Слушать</span>
-                    </div>
-                  )}
-                </div>
-              </a>
-            );
-          })}
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <p className="text-white font-semibold text-sm leading-tight">
+                          {artist.name}
+                        </p>
+                        {artist.url && (
+                          <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Icon name="ExternalLink" size={12} className="text-purple-400" />
+                            <span className="text-purple-400 text-xs">Слушать</span>
+                          </div>
+                        )}
+                      </div>
+                    </a>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+            <CarouselPrevious className="hidden sm:flex -left-4 lg:-left-12 bg-zinc-900 border-white/10 text-white hover:bg-zinc-800 hover:text-white" />
+            <CarouselNext className="hidden sm:flex -right-4 lg:-right-12 bg-zinc-900 border-white/10 text-white hover:bg-zinc-800 hover:text-white" />
+          </Carousel>
         </div>
       </div>
     </section>

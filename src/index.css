@@ -98,3 +98,18 @@
     box-shadow: 0 0 20px white;
   }
 }
+
+/* Floating icon animation for hero section */
+@keyframes float-icon {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-18px) rotate(6deg);
+  }
+}
+
+.animate-float-icon {
+  animation: float-icon 8s ease-in-out infinite;
+}
